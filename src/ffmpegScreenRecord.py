@@ -4,7 +4,7 @@ import subprocess
 import imageio_ffmpeg as ffmpeg
 
 FINAL_OUTPUT = "../saves/" + f"output_{time.time()}.mp4"
-DURATION = 60  # seconds
+DURATION = 10  # seconds
 FPS_TARGET = 60  # Frames per second
 
 def record_screen(output_file="output.mp4", duration=10, fps=60):
