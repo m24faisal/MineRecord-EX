@@ -1,6 +1,5 @@
 import traceback
 import pika
-import pickle
 import dataFormat as df
 import json
 import re
