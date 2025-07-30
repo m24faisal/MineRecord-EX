@@ -1,7 +1,6 @@
 import os
 import time
 import subprocess
-import imageio_ffmpeg as ffmpeg
 
 FINAL_OUTPUT = "../saves/" + f"output_{time.time()}.mp4"
 DURATION = 10  # seconds
