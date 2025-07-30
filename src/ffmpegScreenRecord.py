@@ -6,7 +6,7 @@ FINAL_OUTPUT = "../saves/" + f"output_{time.time()}.mp4"
 DURATION = 10  # seconds
 FPS_TARGET = 60  # Frames per second
 
-def record_screen(output_file="output.mp4", duration=10, fps=60):
+def record_screen(output_file="output.mp4", duration=DURATION, fps=FPS_TARGET):
     ffmpeg_cmd = [
         "ffmpeg",
         "-f", "gdigrab",  # Windows capture method
