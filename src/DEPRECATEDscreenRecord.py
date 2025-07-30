@@ -77,7 +77,7 @@ SCREEN_SIZE = (1920, 1080)  # Replace with your screen resolution
 output = "../saves/" + f"screen_record{time.time()}.avi"
 
 # Define the codec and create a VideoWriter object
-fourcc = cv2.VideoWriter_fourcc(*"XVID")
+fourcc = cv2.VideoWriter.fourcc(*"XVID")
 fps = 60.0  # Set the desired FPS
 frame_delay = 1.0 / fps  # Time delay between frames to control FPS
 
