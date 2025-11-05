@@ -5,12 +5,20 @@ from psycopg2 import sql
 import json
 
 from dataFormat import Effect, Item, DEFAULT_DATA_SNAP
+from typing import TypedDict
+
+class DBConfig(TypedDict):
+    host: str
+    database: str
+    user: str
+    password: str
+    port: str
 
 class Database:
 
     DB_NAME = "playerData"
     #PosrgeSQL Server Connection Settings
-    APP_DB_CONFIG = {
+    APP_DB_CONFIG: DBConfig = {
         "host": "localhost",
         "database":  DB_NAME,
         "user": "postgres",
@@ -18,7 +26,7 @@ class Database:
         "port": "5432"
     }
 
-    MASTER_DB_CONFIG = {
+    MASTER_DB_CONFIG: DBConfig = {
         "host": "localhost",
         "database":  "postgres",
         "user": "postgres",
@@ -54,7 +62,12 @@ class Database:
                 cursor.execute(sql.SQL("CREATE DATABASE {};").format(sql.Identifier(cls.DB_NAME)))
                 print(f"Database '{cls.DB_NAME}' created successfully.")
 
-            cursor.execute( f"GRANT ALL PRIVILEGES ON DATABASE \"{cls.DB_NAME}\" TO { (cls.APP_DB_CONFIG.get('user')) };" )
+            cursor.execute(
+                sql.SQL("GRANT ALL PRIVILEGES ON DATABASE {} TO {};").format(
+                    sql.Identifier(cls.DB_NAME),
+                    sql.Identifier(cls.APP_DB_CONFIG.get('user'))
+            )
+            )
 
         except Exception as e:
             print("Error while creating the database:", e)
@@ -81,80 +94,97 @@ class Database:
         elif hasattr(value, "__dict__"):
             return "JSONB"  # Serialize Python objects as JSONB
         else:
-            return "TEXT"  # Default to TEXT for unsupported types
-        
-    # change data is a dict with key:value pairs
+            return "TEXT"
     @classmethod
     def create_table(cls, table_name, data):
         """
-        Ensures the table exists in the PostgreSQL database.
-        If the table does not exist, it is created based on the provided data (dict).
-        If the table already exists, the function does nothing.
-        
-        Args:
-        - table_name: Name of the table to check/create.
-        - data: Dictionary containing the column names and sample data types for the table.
+        Ensures the table exists and has all required columns.
+        If the table exists but is missing columns, it will add them.
+        This is the definitive fix for schema mismatch errors.
         """
         conn = None
-        # Create a connection to the PostgreSQL database
         try:
             conn = psycopg2.connect(**cls.APP_DB_CONFIG)
-            print("Connected to the database successfully.")
-        except Exception as e:
-            print(f"Error connecting to the database: {e}")
-            return
-        
-        try:
             with conn.cursor() as cursor:
-                # Check if the table already exists
-                cursor.execute("""
-                    SELECT EXISTS (
-                        SELECT 1 
-                        FROM information_schema.tables 
-                        WHERE table_name = %s
-                    );
-                """, (table_name, ))
-                
-                # If the table exists, do nothing
-                if cursor.fetchone()[0]:
-                    print(f"Table '{table_name}' already exists.")
-                    return
-                
-                # Otherwise, create the table
-                columns = ", ".join(
-                    f"{key} {cls.get_postgresql_type(value)}" for key, value in data.items()
+                # 1. Check if table exists
+                cursor.execute(
+                    "SELECT EXISTS FROM information_schema.tables WHERE table_name = %s;",
+                    (table_name,)
                 )
+                table_exists = cursor.fetchone()
 
-                columns = "id SERIAL PRIMARY KEY, " + columns
+                # 2. If table does not exist, create it
+                if not table_exists:
+                    column_definitions: list[sql.Composable] = [sql.SQL("id SERIAL PRIMARY KEY")]
+                    for key, value in data.items():
+                        column_definitions.append(
+                            sql.SQL("{} {}").format(sql.Identifier(key), sql.SQL(cls.get_postgresql_type(value)))
+                        )
+                    if table_name in ("ITEMS", "EFFECTS"):
+                        column_definitions.append(sql.SQL("data_id INTEGER NOT NULL"))
+
+                    columns_sql = sql.SQL(", ").join(column_definitions)
+                    create_table_query = sql.Composed([
+                        sql.SQL("CREATE TABLE "),
+                        sql.Identifier(table_name),
+                        sql.SQL(" ("),
+                        columns_sql,
+                        sql.SQL(");")
+                    ])
+                    cursor.execute(create_table_query)
+                    print(f"Table '{table_name}' created successfully.")
                 
-                
+                # 3. If table exists, check for and add missing columns
+                else:
+                    # Get existing columns from the database
+                    cursor.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = %s;
+                    """, (table_name,))
+                    existing_columns = {row[0] for row in cursor.fetchall()}
 
-                create_table_query = sql.SQL("CREATE TABLE {} ({})").format(
-                    sql.Identifier(table_name),
-                    sql.SQL(columns)
-                )
+                    # Check for missing columns from the provided data
+                    for key, value in data.items():
+                        if key not in existing_columns:
+                            print(f"Column '{key}' not found in table '{table_name}'. Adding it...")
+                            alter_query = sql.SQL("ALTER TABLE {} ADD COLUMN {} {};").format(
+                                sql.Identifier(table_name),
+                                sql.Identifier(key),
+                                sql.SQL(cls.get_postgresql_type(value))
+                            )
+                            cursor.execute(alter_query)
+                            print(f"Column '{key}' added successfully.")
+                    
+                    # Ensure the data_id column exists for child tables
+                    if table_name in ("ITEMS", "EFFECTS") and "data_id" not in existing_columns:
+                        print(f"Column 'data_id' not found in table '{table_name}'. Adding it...")
+                        alter_query = sql.SQL("ALTER TABLE {} ADD COLUMN data_id INTEGER NOT NULL;").format(
+                            sql.Identifier(table_name)
+                        )
+                        # Adding a NOT NULL column to a table with data requires a default
+                        cursor.execute(alter_query + sql.SQL(" DEFAULT 0;"))
+                        print(f"Column 'data_id' added successfully.")
 
-                #print(columns)
-                #print(create_table_query)
 
-                cursor.execute(create_table_query)
                 conn.commit()
-                print(f"Table '{table_name}' created successfully.")
         
         except Exception as e:
-            print(f"Error creating table: {e}")
+            print(f"Error in create_table for '{table_name}': {e}")
+            if conn:
+                conn.rollback()
         finally:
-            # Close the connection
-            conn.close()
-            print("Database connection closed.")
+            if conn:
+                conn.close()
+        
+
     @staticmethod
     def serialize_value(value):
         """
         Serialize Python objects, lists, and dictionaries for insertion into PostgreSQL.
         """
         if isinstance(value, (list, dict, tuple)) or hasattr(value, "__dict__"):
-            return json.dumps(value, default=lambda o: o.__dict__)  # Convert to JSON
-        return value  # Return the original value for simple types
+            return json.dumps(value, default=lambda o: o.__dict__) # Convert to JSON
+        return value # Return to original value for simple data types
     
     @classmethod
     def serialize_multiple_values(cls, values):
@@ -163,30 +193,21 @@ class Database:
     # creates  ddataframe (database dataframe) => tuple(DATA, [EFFECT], [ITEM]) from a Dataframe Object
     @classmethod
     def convert_dataframe_to_ddataframe(cls, dataframe):
-        #assume dataframe is a Dataframe Object
-        #print("start")
+        """Converts a complex dataframe object into a tuple of dicts for DB insertion."""
         datadict = asdict(dataframe)
-        itemList = []# list of dicts
+        itemList = []
         effectList = []
 
-
-        for idx, invItem in enumerate(dataframe.plyrInventory):
-            #print(invItem)
-            itemDict: dict = asdict(invItem)
-            #itemDict["idx"] = idx ##TODO
-            itemList.append(itemDict)
-        else:
-            datadict.pop("plyrInventory")
-        #do same for armor and offhand, can either continue incrementing idx, or we can create a "source" column for which type of inv this is from
-        datadict.pop("plyrArmor") # just discard for now
-        datadict.pop("plyrOffhand")
+        for invItem in dataframe.plyrInventory:
+            itemList.append(asdict(invItem))
+        datadict.pop("plyrInventory", None)
+        datadict.pop("plyrArmor", None) # Discard for now
+        datadict.pop("plyrOffhand", None)
         
         for effect in dataframe.plyrStatus:
-            effectDict: dict = asdict(effect)
-            #effectDict["data_id"] = idx
-            effectList.append(effectDict)
-        else:
-            datadict.pop("plyrStatus")
+            effectList.append(asdict(effect))
+        datadict.pop("plyrStatus", None)
+        
         return (datadict, itemList, effectList)
     
 
@@ -194,143 +215,124 @@ class Database:
     # separate out schema creation
     # accepts ddataframe (database dataframe) => tuple(DATA, [EFFECT], [ITEM])
     @classmethod
-    def save_ddataframe(cls, data):
-        #table_name = ""
+    def save_ddataframe(cls, dataframe):
+        """
+        Saves a dataframe object to the database.
+        """
+        ddataframe = cls.convert_dataframe_to_ddataframe(dataframe)
+        
+        if cls.DEFAULT_DDATAFRAME is None:
+            cls.DEFAULT_DDATAFRAME = cls.convert_dataframe_to_ddataframe(DEFAULT_DATA_SNAP)
+            cls.create_table("DATA", cls.DEFAULT_DDATAFRAME[0])
+            sample_item = cls.DEFAULT_DDATAFRAME[1][0].copy()
+            sample_item['data_id'] = 0
+            sample_effect = cls.DEFAULT_DDATAFRAME[2][0].copy()
+            sample_effect['data_id'] = 0
+            cls.create_table("ITEMS", sample_item)
+            cls.create_table("EFFECTS", sample_effect)
+
         connection = None
         try:
-            #split dataframe into three separate dicts
-            #print("Happens Here 1")
-            # Ensure the table exists
-            if cls.DEFAULT_DDATAFRAME is None: #only runs once
-                cls.DEFAULT_DDATAFRAME = cls.convert_dataframe_to_ddataframe(DEFAULT_DATA_SNAP)
-                
-                itemtabledata = cls.DEFAULT_DDATAFRAME[1][0]
-                itemtabledata["data_id"] = 0
-                effecttabledata = cls.DEFAULT_DDATAFRAME[2][0].copy()
-                effecttabledata["data_id"] = 0
-
-                serialized_data = {key: cls.serialize_value(value) for key, value in cls.DEFAULT_DDATAFRAME[0].items()}
-                serialized_itemtable = {key: cls.serialize_value(value) for key, value in itemtabledata.items()}
-                serialized_effect = {key: cls.serialize_value(value) for key, value in effecttabledata.items()}
-
-                #print(serialized_data)
-
-                cls.create_table("DATA", serialized_data) #really silly to create every single time, but i digress
-                cls.create_table("ITEMS", serialized_itemtable) #really silly to create every single time, but i digress
-                cls.create_table("EFFECTS", serialized_effect) #really silly to create every single time, but i digress
-
-
-            # Connect to the PostgreSQL database
             connection = psycopg2.connect(**cls.APP_DB_CONFIG)
-            cursor = connection.cursor()
+            with connection.cursor() as cursor:
+                # --- Insert into DATA table ---
+                serialized_data = {key: cls.serialize_value(value) for key, value in ddataframe[0].items()}
+                columns = list(serialized_data.keys())
+                values = list(serialized_data.values())
+                
+                query = sql.Composed([
+                    sql.SQL("INSERT INTO "),
+                    sql.Identifier("DATA"),
+                    sql.SQL(" ("),
+                    sql.SQL(", ").join(map(sql.Identifier, columns)),
+                    sql.SQL(") VALUES ("),
+                    sql.SQL(", ").join(sql.Placeholder() * len(values)),
+                    sql.SQL(") RETURNING id;")
+                ])
+                
+                # --- ENHANCED ERROR HANDLING ---
+                try:
+                    print(f"Executing Query: {cursor.mogrify(query, values).decode('utf-8')}")
+                    cursor.execute(query, values)
+                    result = cursor.fetchone()
+                    if result is None:
+                        # This should not happen if execute succeeds, but we check anyway.
+                        raise Exception("INSERT succeeded but did not return an ID.")
+                    inserted_data_id = result[0]
+                    print(f"Successfully inserted into DATA table with new ID: {inserted_data_id}")
+                except psycopg2.Error as db_error:
+                    # Catch the specific database error and print it.
+                    print(f"DATABASE ERROR during DATA insert: {db_error}")
+                    print("This is likely a schema mismatch. Check the printed query against your table structure.")
+                    raise # Re-raise the exception to stop execution
 
-            # Serialize complex values in the dictionary
-            serialized_data = {key: cls.serialize_value(value) for key, value in data[0].items()}
+                # ... (rest of the method for ITEMS and EFFECTS is the same) ...
+                # --- Insert into ITEMS table ---
+                item_columns = [field.name for field in fields(Item)] + ["data_id"]
+                query_items = sql.Composed([
+                    sql.SQL("INSERT INTO "),
+                    sql.Identifier("ITEMS"),
+                    sql.SQL(" ("),
+                    sql.SQL(", ").join(map(sql.Identifier, item_columns)),
+                    sql.SQL(") VALUES ("),
+                    sql.SQL(", ").join(sql.Placeholder() * len(item_columns)),
+                    sql.SQL(");")
+                ])
 
-            # Build the SQL query dynamically
-            columnsData, valuesData = (serialized_data.keys(), serialized_data.values())
-            columnsItems = [field.name for field in fields(Item)] + ["data_id"]
-            columnsEffects = [field.name for field in fields(Effect)]+ ["data_id"]
+                for item_dict in ddataframe[1]:
+                    item_values = cls.serialize_multiple_values(item_dict.values())
+                    item_values.append(inserted_data_id)
+                    cursor.execute(query_items, item_values)
 
-            queryDATA = f"""
-                INSERT INTO \"{"DATA"}\" ({', '.join(columnsData)})
-                VALUES ({', '.join(['%s'] * len(valuesData))})
-                RETURNING id
-            """
+                # --- Insert into EFFECTS table ---
+                effect_columns = [field.name for field in fields(Effect)] + ["data_id"]
+                query_effects = sql.Composed([
+                    sql.SQL("INSERT INTO "),
+                    sql.Identifier("EFFECTS"),
+                    sql.SQL(" ("),
+                    sql.SQL(", ").join(map(sql.Identifier, effect_columns)),
+                    sql.SQL(") VALUES ("),
+                    sql.SQL(", ").join(sql.Placeholder() * len(effect_columns)),
+                    sql.SQL(");")
+                ])
 
-            queryITEMS = f"""
-                INSERT INTO \"{"ITEMS"}\" ({', '.join(columnsItems)})
-                VALUES ({', '.join(['%s'] * len(columnsItems))})
-            """
+                for effect_dict in ddataframe[2]:
+                    effect_values = cls.serialize_multiple_values(effect_dict.values())
+                    effect_values.append(inserted_data_id)
+                    cursor.execute(query_effects, effect_values)
 
-            queryEFFECTS = f"""
-                INSERT INTO \"{"EFFECTS"}\" ({', '.join(columnsEffects)})
-                VALUES ({', '.join(['%s'] * len(columnsEffects))})
-            """
-
-            #print(query)
-            #print(tuple(values))
-            #newVals = tuple( val[:255]   for val in tuple(values))
-
-            # Execute the query with values
-            #serializedDATA = cls.serialize_multiple_values(valuesData)
-            valuesData = list(valuesData)
-
-            #print("Inserting DATA:")
-            #print(valuesData)
-            #print(queryDATA)
-
-            cursor.execute(queryDATA, valuesData)
             connection.commit()
-            #print("stop")
-
-            # get data table id with sql query
-            #print("Happens Here 3")
-            inserted_data_id = str(cursor.fetchone()[0])
-            #print("initdone", inserted_data_id)
-
-            for item in data[1]:
-                #print(queryITEMS)
-                #print(tuple(item.values()) + tuple(inserted_data_id, ))
-                l = cls.serialize_multiple_values(item.values())
-                l.append(inserted_data_id)
-                
-                #print("Inserting Item:")
-                #print(queryITEMS)
-                #print(l)
-
-                cursor.execute(queryITEMS, l)
-                
-                #print("insertion complete")
-            #print("Happens Here 4")
-            for effect in data[2]:
-                l = cls.serialize_multiple_values(effect.values())
-                l.append(inserted_data_id)
-                
-                #print("Inserting Effects:")
-                #print(queryEFFECTS)
-                #print(l)
-
-                cursor.execute(queryEFFECTS, l)
-                #print("insertion complete")
-            connection.commit()
-            #print("Data inserted successfully!")
+            print("All data inserted successfully!")
 
         except Exception as e:
-        
-            print("Error Message DDATAFRAME SAVE:", e)
-            
-
+            print(f"An error occurred during DDATAFRAME SAVE: {e}")
+            if connection:
+                connection.rollback()
+            raise
         finally:
             if connection:
-                cursor.close()
                 connection.close()
-
     @classmethod
     def custom_command(cls, query):
+        """Executes a raw SQL command. Use with caution."""
         connection = None
         try:
-            # Connect to the PostgreSQL database
             connection = psycopg2.connect(**cls.APP_DB_CONFIG)
-            cursor = connection.cursor()
-
-
-            # Execute the query with values
-            cursor.execute(query)
-            connection.commit()
-
-            # Fetch all results
-            rows = cursor.fetchall()
-            # Print the results
-            #print(rows)
-            for row in rows:
-                #print(row)
-                pass
-
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                # If it's a SELECT query, fetch and return results
+                if cursor.description:
+                    return cursor.fetchall()
+                # Otherwise, commit the command (e.g., for UPDATE, DELETE)
+                else:
+                    connection.commit()
+                    return cursor.rowcount
         except Exception as e:
-            print("Error at Custom Command:", e)
-
+            print(f"Error at Custom Command: {e}")
+            if connection:
+                connection.rollback()
+            return None
         finally:
             if connection:
-                cursor.close()
                 connection.close()
+                print("Database connection closed.")
