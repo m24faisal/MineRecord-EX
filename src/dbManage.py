@@ -6,13 +6,6 @@ import json
 
 from dataFormat import Effect, Item, DEFAULT_DATA_SNAP
 
-
-# TODO SPEED OPTIMIZATION -- DO THIS ONCE DB ISSUES ARE FULLY RESOLVED
-"""
-    TODO KEEP CONNECTION LIVE
-    TODO BATCH DATABASE WRITES TO SAVE ON LATENCY
-
-"""
 class Database:
 
     DB_NAME = "playerData"
