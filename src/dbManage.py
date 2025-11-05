@@ -99,22 +99,37 @@ class Database:
     def create_table(cls, table_name, data):
         """
         Ensures the table exists and has all required columns.
-        If the table exists but is missing columns, it will add them.
-        This is the definitive fix for schema mismatch errors.
+        This version is fully isolated to prevent transaction errors.
         """
+        # --- THE FIX: Get a fresh connection for this specific operation ---
         conn = None
         try:
             conn = psycopg2.connect(**cls.APP_DB_CONFIG)
+            # Set autocommit to True to make this check a self-contained transaction.
+            # This prevents it from being affected by any previous failed operations.
+            conn.autocommit = True
+            
             with conn.cursor() as cursor:
-                # 1. Check if table exists
+                # --- The Critical Check ---
+                # This query is now guaranteed to run in a clean context.
+                print(f"DIAGNOSTIC: Checking if table '{table_name}' exists...")
                 cursor.execute(
-                    "SELECT EXISTS FROM information_schema.tables WHERE table_name = %s;",
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = %s;",
                     (table_name,)
                 )
-                table_exists = cursor.fetchone()
+                
+                # --- Defensive Programming ---
+                result = cursor.fetchone()
+                if result is None:
+                    # This should be impossible with COUNT(*), but we check to be 100% safe.
+                    raise Exception(f"CRITICAL: Database check for table '{table_name}' returned an unexpected result.")
+                
+                table_exists = result[0] > 0
+                print(f"DIAGNOSTIC: Table '{table_name}' exists? {table_exists}")
 
                 # 2. If table does not exist, create it
                 if not table_exists:
+                    print(f"Table '{table_name}' does not exist. Creating it...")
                     column_definitions: list[sql.Composable] = [sql.SQL("id SERIAL PRIMARY KEY")]
                     for key, value in data.items():
                         column_definitions.append(
@@ -136,14 +151,13 @@ class Database:
                 
                 # 3. If table exists, check for and add missing columns
                 else:
-                    # Get existing columns from the database
+                    print(f"Table '{table_name}' exists. Checking for missing columns...")
                     cursor.execute("""
                         SELECT column_name FROM information_schema.columns 
                         WHERE table_name = %s;
                     """, (table_name,))
                     existing_columns = {row[0] for row in cursor.fetchall()}
 
-                    # Check for missing columns from the provided data
                     for key, value in data.items():
                         if key not in existing_columns:
                             print(f"Column '{key}' not found in table '{table_name}'. Adding it...")
@@ -155,23 +169,17 @@ class Database:
                             cursor.execute(alter_query)
                             print(f"Column '{key}' added successfully.")
                     
-                    # Ensure the data_id column exists for child tables
                     if table_name in ("ITEMS", "EFFECTS") and "data_id" not in existing_columns:
                         print(f"Column 'data_id' not found in table '{table_name}'. Adding it...")
                         alter_query = sql.SQL("ALTER TABLE {} ADD COLUMN data_id INTEGER NOT NULL;").format(
                             sql.Identifier(table_name)
                         )
-                        # Adding a NOT NULL column to a table with data requires a default
                         cursor.execute(alter_query + sql.SQL(" DEFAULT 0;"))
                         print(f"Column 'data_id' added successfully.")
 
-
-                conn.commit()
-        
         except Exception as e:
             print(f"Error in create_table for '{table_name}': {e}")
-            if conn:
-                conn.rollback()
+            # No rollback needed because we are using autocommit
         finally:
             if conn:
                 conn.close()
