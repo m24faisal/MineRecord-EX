@@ -1,7 +1,7 @@
 from dataclasses import dataclass, asdict
 import csv
 import os
-
+from typing import Any, Dict, List, Optional
 
 
 @dataclass 
@@ -9,7 +9,6 @@ class Item:
     name : str
     count : int
     meta : str
-    #add location to make life simple
 
 @dataclass
 class Effect:
@@ -24,17 +23,16 @@ class DataSnap:
     fps: float
     time: str
     date: str
-
     plyrName: str
-    plyrLocation: list[float]
+    plyrLocation: List[float]
     plyrHealth: float
-    plyrInventory: list[Item]
+    plyrInventory: List[Item]
     plyrArmor: str
     plyrOffhand: str
-    plyrStatus: list[Effect]
+    plyrStatus: List[Effect]
     plyrHunger: float
     plyrSat: float
-    plyrView: list[float]
+    plyrView: List[float]
     plyrFacing: str
     plyrSelectedSlot: int
     plyrSelectedItem: str
@@ -61,7 +59,7 @@ def string_to_bool(value):
         return False
     else:
         raise ValueError(f"Cannot convert '{value}' to a boolean")
-def cleanSplit( source: str, token: str):
+def cleanSplit( source: str, token: str)  -> List[str]:
     return [s.strip() for s in source.split(token) if s.strip() != '']
 
 """
@@ -75,57 +73,74 @@ def pairwiseGenerator(listObj):
         two = next(it, None)  # Get the first element
 """
 
-def decryptInv(plyrInventory : str):
-    out = []
-    plyrInventory = cleanSplit(plyrInventory, ";")
-    for pI in plyrInventory:
-        itemName, itemCount = list(i.split(":")[1] for i in pI.split(","))
-        out.append(Item(name = itemName, count = int(itemCount.strip()), meta = ""))
+def decryptInv(plyrInventory : str) -> List[Item]:
+    out: List[Item] = []
+    if not plyrInventory or plyrInventory.strip() == 'None':
+        return out
+    inventory_parts = cleanSplit(plyrInventory, ";")
+    for pI in inventory_parts:
+        try:
+            parts = pI.split(":")
+            if len(parts) < 2: continue
+            itemName = parts[0].strip()
+            itemCount = parts[1].strip() if len(parts) > 2 else "0"
+            out.append(Item(name = itemName, count = int(itemCount.strip()), meta = ""))
+        except (ValueError, IndexError):
+            continue
     return out
 
-def decryptStatus(status : str):
+def decryptStatus(status : str) -> List[Effect]:
     out = []
-    status = status.strip()
-    #print("status", status)
-    if(status == 'None'):
+    if not status or status.strip() == 'None':
         return out
     else:
         for stat in cleanSplit(status, ";"):
-            stat = stat.strip()
-            fragmentVals = []
-            for fragment in cleanSplit(stat, ','):
-                fragmentVals.append(cleanSplit(fragment, ":")[1])
+            try:
+                fragmentVals = []
+                for fragment in cleanSplit(stat, ','):
+                    val = cleanSplit(fragment, ":")
+                    if len(val) > 1:
+                        fragmentVals.append(val[1])
+                if len(fragmentVals) >= 4:
 
-            out.append(
-                Effect( name = fragmentVals[0], 
-                        type = fragmentVals[1], 
-                        duration= float(fragmentVals[2]),
-                        amplifierLevel= int(fragmentVals[3])
-                )
-            )
+                    out.append(
+                        Effect( name = fragmentVals[0], 
+                                type = fragmentVals[1], 
+                                duration= float(fragmentVals[2]),
+                                amplifierLevel= int(fragmentVals[3])
+                        )
+                    )
+            except (ValueError, IndexError):
+                continue
     return out
 
-def decrypt(data) -> DataSnap: # Takes dict as input, decrypts and returns the data class
+def decrypt(data: Dict[str,Any]) -> Optional[DataSnap]: # Takes dict as input, decrypts and returns the data class
     try:
-        date = data.get('date')
-        fps = float(data.get("fps"))
-        time = data.get('time')
-        plyrName = data.get('plyrName')
-        plyrInventory = decryptInv(data.get('plyrInventory'))
-        plyrArmor = data.get('plyrArmor')
-        plyrOffhand = data.get('plyrOffhand')
-        plyrStatus = decryptStatus(data.get('plyrStatus'))
-        plyrLocation = eval(data.get('plyrLocation')) #evil ##TODO replace with a more robust parsing scheme
-        plyrHealth = float(data.get('plyrHealth'))
-        plyrHunger = float(data.get('plyrHunger'))
-        plyrSat = float(data.get('plyrSat'))
-        plyrView = eval(data.get('plyrView')) # evil ## TODO same as above
-        plyrFacing = data.get('plyrFacing')
-        plyrSelectedSlot = int(data.get('plyrSelectedSlot')) # should be int, but for some reason ints are turned into tuples of size one
-        plyrSelectedItem = data.get('plyrSelectedItem')
-        plyrRideState = string_to_bool(data.get('plyrRideState'))
-        plyrRideVehicle = data.get('plyrRideVehicle')
-        plyrMomentum = float(data.get('plyrMomentum'))
+        date = str(data.get('date',''))
+        fps = float(data.get("fps",0.0))
+        time = str(data.get('time',''))
+        plyrName = str(data.get('plyrName',''))
+
+        plyrInventory_str = str(data.get('plyrInventory',''))
+        plyrInventory = decryptInv(plyrInventory_str)
+
+        plyrArmor = str(data.get('plyrArmor',''))
+        plyrOffhand = str(data.get('plyrOffhand',''))
+
+        plyrStatus_str = str(data.get('plyrStatus',''))
+        plyrStatus = decryptStatus(plyrStatus_str)
+
+        plyrLocation = eval(data.get('plyrLocation','[]'))
+        plyrHealth = float(data.get('plyrHealth',0.0))
+        plyrHunger = float(data.get('plyrHunger',0.0))
+        plyrSat = float(data.get('plyrSat',0.0))
+        plyrView = eval(data.get('plyrView','[]'))
+        plyrFacing = str(data.get('plyrFacing'))
+        plyrSelectedSlot = int(data.get('plyrSelectedSlot',0))
+        plyrSelectedItem = str(data.get('plyrSelectedItem',''))
+        plyrRideState = string_to_bool(data.get('plyrRideState','false'))
+        plyrRideVehicle = str(data.get('plyrRideVehicle',''))
+        plyrMomentum = float(data.get('plyrMomentum',0.0))
 
         return DataSnap(
             date = date,
@@ -148,12 +163,11 @@ def decrypt(data) -> DataSnap: # Takes dict as input, decrypts and returns the d
             plyrRideVehicle = plyrRideVehicle,
             plyrMomentum = plyrMomentum
         )
-    except Exception as e:
-        print(e)
-        
-        print('decrypt failed with data: ')
+    except (ValueError, TypeError,SyntaxError) as e:
+        print(f'Decryption failed with error: {e}')
+        print(f"Problematic data: {data}")
         return None
-def save_to_csv(data, filename):
+def save_to_csv(data: DataSnap, filename:str):
     data_dict = asdict(data)
     # Open a CSV file to write the data
     with open(filename, mode='a', newline="") as file:
@@ -164,16 +178,17 @@ def save_to_csv(data, filename):
 
         writer.writerow(data_dict)
 
-def load_from_csv(filename):
+def load_from_csv(filename:str) -> List[DataSnap]:
     with open(filename, mode="r") as file:
         reader = csv.DictReader(file)
         # Convert each row in the csv file to a dictionary which is then added to a list of dictionaries
         #print(dataDicts)
-        outputData = []
+        outputData:List[DataSnap] = []
         # The code noted below may or may not be needed
         for dataDict in reader:
-            #datadict to datastruct
-            outputData.append(DataSnap(**dataDict)) # named tuple from dictionary and then used as constructor for datastruct. fingers crossed
+            datasnap_instance = decrypt(dataDict)
+            if datasnap_instance is not None:
+                outputData.append(datasnap_instance)
         return outputData
 
 """
