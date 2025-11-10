@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 import os
 from dbManage import Database as db
+import time
 
 dataSnaps = []
 db.create_database()
@@ -46,25 +47,40 @@ def callback(ch, method, properties, body):
         traceback.print_exc()
         print("Could not decipher properly")
 
-# Set up the consumer to listen to the queue
-channel.basic_consume(queue='data_gametracker',
-                      on_message_callback=callback,
-                      auto_ack=True)
+print(' [*] Waiting for messages. Will shut down after 10 seconds of inactivity.')
 
-print(' [*] Waiting for messages. To exit press CTRL+C')
 try:
-    channel.start_consuming()
+    # --- ROBUST TIMEOUT LOOP ---
+    timeout_seconds = 10
+    start_time = time.time()
+    
+    while True:
+        # Check for a message. This is a non-blocking call.
+        method_frame, header_frame, body = channel.basic_get(queue='data_gametracker', auto_ack=True)
+        
+        if method_frame:
+            # If a message was received, process it and reset timer
+            print(" [x] Received message")
+            callback(channel, method_frame, header_frame, body)
+            start_time = time.time() # Reset the timer
+        else:
+            # No message, check if timeout has been reached
+            if time.time() - start_time > timeout_seconds:
+                print(f" [.] No message received for {timeout_seconds} seconds. Shutting down.")
+                break # Exit the loop
+            else:
+                # Wait a short period before polling again to avoid a tight loop
+                time.sleep(1)
+
 except KeyboardInterrupt:
-    # This will still correctly catch you pressing Ctrl+C
     print("\n[!] Interrupted by user. Shutting down.")
 except Exception as e:
-    # This is a CATCH-ALL for any other error, including connection drops
     print(f"\n[!] An error occurred: {e}. Shutting down.")
-    print(f"Error type: {type(e).__name__}")
 finally:
     # This block ensures the connection is always closed properly
     print("Closing connection...")
     try:
+        # Check if the connection object exists and is open before trying to close it
         if 'connection' in locals() and connection.is_open:
             connection.close()
     except Exception as e:
