@@ -52,4 +52,21 @@ channel.basic_consume(queue='data_gametracker',
                       auto_ack=True)
 
 print(' [*] Waiting for messages. To exit press CTRL+C')
-channel.start_consuming()
+try:
+    channel.start_consuming()
+except KeyboardInterrupt:
+    # This will still correctly catch you pressing Ctrl+C
+    print("\n[!] Interrupted by user. Shutting down.")
+except Exception as e:
+    # This is a CATCH-ALL for any other error, including connection drops
+    print(f"\n[!] An error occurred: {e}. Shutting down.")
+    print(f"Error type: {type(e).__name__}")
+finally:
+    # This block ensures the connection is always closed properly
+    print("Closing connection...")
+    try:
+        if 'connection' in locals() and connection.is_open:
+            connection.close()
+    except Exception as e:
+        print(f"Error while closing connection: {e}")
+    print("Shutdown complete.")
