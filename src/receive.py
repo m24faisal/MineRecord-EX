@@ -38,7 +38,7 @@ def callback(ch, method, properties, body):
         #print("decrypt done")
         dataSnaps.append(dataframe_instance)
         df.save_to_csv(dataframe_instance, fName)
-        db.save_ddataframe(db.convert_dataframe_to_ddataframe(dataframe_instance))
+        db.save_ddataframe(dataframe_instance)
         
         #for data in dataSnaps:
             #df.save_to_csv(data, fName)
