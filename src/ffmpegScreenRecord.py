@@ -1,8 +1,5 @@
-import os
 import time
 import subprocess
-import signal
-import sys
 
 FINAL_OUTPUT = "../saves/" + f"output_{time.time()}.mp4"
 FPS_TARGET = 60  # Frames per second
