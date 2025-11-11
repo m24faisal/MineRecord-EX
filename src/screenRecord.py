@@ -1,57 +1,73 @@
 import os
 import time
 import subprocess
-import signal
 import sys
+import msvcrt  # Still the best way to detect a keypress on Windows
 
 FINAL_OUTPUT = "../saves/" + f"output_{time.time()}.mp4"
-FPS_TARGET = 60  # Frames per second
-
-# We'll store the process in a global variable so the signal handler can access it
-ffmpeg_process = None
-
-def signal_handler(sig, frame):
-    """
-    This function will be called when the user presses Ctrl+C
-    """
-    global ffmpeg_process
-    print("\nStopping recording... Please wait, this may take a moment.")
-    if ffmpeg_process:
-        # Send the 'q' command to ffmpeg's stdin, which tells it to quit gracefully
-        ffmpeg_process.communicate(input=b'q')
-    print("Recording stopped and file saved.")
-    sys.exit(0)
+FPS_TARGET = 60
 
 def record_screen(output_file="output.mp4", fps=FPS_TARGET):
     """
-    Records the screen indefinitely until the user presses Ctrl+C.
+    Records the screen by starting a process and terminating it on 'q'.
+    This method is more robust than writing to stdin.
     """
-    global ffmpeg_process
-
     ffmpeg_cmd = [
         "ffmpeg",
-        "-f", "gdigrab",  # Windows capture method
-        "-framerate", str(fps),  # Capture at desired FPS
-        "-i", "desktop",  # Capture the entire desktop
-        "-vcodec", "libx264",  # Use the x264 codec for compression
-        "-preset", "fast",  # Encoding speed (trade-off for size and quality)
+        "-f", "gdigrab",
+        "-framerate", str(fps),
+        "-i", "desktop",
+        "-vcodec", "libx264",
+        "-preset", "fast",
+        "-y",  # Overwrite output file if it exists
         output_file
     ]
     
-    # Register our signal handler for Ctrl+C
-    signal.signal(signal.SIGINT, signal_handler)
+    print("Starting FFmpeg process...")
+    # --- KEY CHANGE: We do NOT ask for stdin, stdout, or stderr ---
+    # This avoids the pipe creation errors entirely.
+    try:
+        process = subprocess.Popen(ffmpeg_cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+    except FileNotFoundError:
+        print("\n!!! CRITICAL ERROR: 'ffmpeg' command not found. !!!")
+        print("Please ensure FFmpeg is installed and in your system's PATH.")
+        return
+    except Exception as e:
+        print(f"\n!!! CRITICAL ERROR: Failed to launch FFmpeg: {e} !!!")
+        return
 
-    print("Recording started. Press Ctrl+C to stop and save the recording.")
+    # Give it a moment to start
+    time.sleep(1.5)
     
-    # Start the process
-    # We need to open stdin so we can send the 'q' command later
-    ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
-    
-    # Wait for the process to complete. It will only complete after our
-    # signal handler sends the 'q' command.
-    ffmpeg_process.wait()
+    # Check if it's still running. If not, it failed.
+    if process.poll() is not None:
+        print(f"\nERROR: FFmpeg process terminated with exit code {process.poll()}.")
+        print("It may have failed to start. Check your FFmpeg installation and 'gdigrab' support.")
+        return
+
+    print("Recording started. Press 'q' to stop and save the recording.")
+
+    try:
+        while True:
+            if msvcrt.kbhit():
+                if msvcrt.getwch().lower() == 'q':
+                    print("\n'q' detected. Terminating FFmpeg process...")
+                    break
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("\nCtrl+C detected. Terminating FFmpeg process...")
+    finally:
+        # --- KEY CHANGE: Gracefully terminate the process ---
+        process.terminate() # Sends a SIGTERM signal, asking it to quit
+        try:
+            # Wait up to 10 seconds for it to close
+            process.wait(timeout=10)
+            print("FFmpeg terminated gracefully. File saved.")
+        except subprocess.TimeoutExpired:
+            print("FFmpeg did not terminate in time. Forcing it to close.")
+            process.kill() # Sends a SIGKILL signal, forcing it to quit
+            print("FFmpeg killed. File may be corrupted, but most of it should be saved.")
 
 if __name__ == "__main__":
-    # Make sure the saves directory exists
     os.makedirs(os.path.dirname(FINAL_OUTPUT), exist_ok=True)
     record_screen(FINAL_OUTPUT, fps=FPS_TARGET)
