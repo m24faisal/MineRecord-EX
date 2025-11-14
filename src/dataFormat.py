@@ -62,16 +62,6 @@ def string_to_bool(value):
 def cleanSplit( source: str, token: str)  -> List[str]:
     return [s.strip() for s in source.split(token) if s.strip() != '']
 
-"""
-def pairwiseGenerator(listObj):
-    it = iter(listObj)
-    one = next(it, None)  # Get the first element
-    two = next(it, None)  # Get the first element
-    while one != None and two != None:
-        yield one, two
-        one = next(it, None)  # Get the first element
-        two = next(it, None)  # Get the first element
-"""
 
 def decryptInv(plyrInventory : str) -> List[Item]:
     out: List[Item] = []
@@ -190,33 +180,6 @@ def load_from_csv(filename:str) -> List[DataSnap]:
             if datasnap_instance is not None:
                 outputData.append(datasnap_instance)
         return outputData
-
-"""
-## Deprecated
-def save_to_table(dataObjects,table_name):
-    if(isinstance(dataObjects, DataSnap)):
-        dataObjects = asdict(dataObjects)
-        dataObjectsList = [dataObjects]
-    elif(isinstance(dataObjectsList, list)):
-        pass
-    else:
-        return # not valid
-
-    for dataObj in dataObjects:
-        #print(data)
-        #data_dict = asdict(dataObj)
-        db.create_table(table_name,dataObj) #data_dict#)
-        db.insert_Dataframe(table_name,dataObj) #data_dict)
-"""
-
-"""
-## Deprecated
-# TODO split dataframe into main table
-def save_dataframe_to_database(dataframe):
-    data_table_entry = ""
-    effects_table_entry = dataframe.plyrStatus
-    item_table_entry = dataframe.plyrInventory # maybe we need to specify item inventory location as well!
-"""
 
 def test1():
     """test stuff"""
