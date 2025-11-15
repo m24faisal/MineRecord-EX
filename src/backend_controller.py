@@ -1,12 +1,14 @@
-# backend_controller.py
 import sys
 import os
 import uuid
+import threading
 from datetime import datetime
 import subprocess
 
 # Add the parent directory to the path to import backend modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import your existing modules
 from dataFormat import DataSnap
 from dbManage import Database
 from screenRecord import record_screen
@@ -15,21 +17,17 @@ from screenRecord import record_screen
 active_recordings = {}
 
 def start_recording(game_name, game_path, recording_path):
-    """Start recording game data and screen"""
+    """Start recording game data and screen. Called from C++."""
     try:
-        # Generate a unique recording ID
         recording_id = str(uuid.uuid4())
         
-        # Create recording directory if it doesn't exist
         recording_dir = os.path.join(recording_path, game_name)
         os.makedirs(recording_dir, exist_ok=True)
         
-        # Generate video filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         video_filename = f"{game_name}_{timestamp}.mp4"
         video_path = os.path.join(recording_dir, video_filename)
         
-        # Store recording info
         active_recordings[recording_id] = {
             "game_name": game_name,
             "game_path": game_path,
@@ -37,21 +35,27 @@ def start_recording(game_name, game_path, recording_path):
             "video_path": video_path,
             "start_time": datetime.now(),
             "status": "active",
-            "screen_process": None
+            "screen_process": None,
+            "data_thread": None
         }
         
-        # Start screen recording
-        start_screen_recording(recording_id)
+        # Start screen recording in a separate thread to not block the C++ call
+        screen_thread = threading.Thread(target=start_screen_recording, args=(recording_id,))
+        screen_thread.daemon = True
+        screen_thread.start()
         
-        # Start data collection
-        start_data_collection(recording_id)
+        # Start data collection in a separate thread
+        data_thread = threading.Thread(target=start_data_collection, args=(recording_id,))
+        data_thread.daemon = True
+        data_thread.start()
+        active_recordings[recording_id]["data_thread"] = data_thread
         
         return recording_id
     except Exception as e:
         return f"Error: Failed to start recording: {str(e)}"
         
 def stop_recording(recording_id):
-    """Stop recording game data and screen"""
+    """Stop recording game data and screen. Called from C++."""
     try:
         if recording_id not in active_recordings:
             return "Error: Recording not found"
@@ -60,8 +64,8 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # Stop screen recording if it's running
-        if recording["screen_process"] and recording["screen_process"].poll() is None:
+        # Stop screen recording
+        if recording.get("screen_process") and recording["screen_process"].poll() is None:
             recording["screen_process"].terminate()
             try:
                 recording["screen_process"].wait(timeout=10)
@@ -71,39 +75,14 @@ def stop_recording(recording_id):
         return f"Recording stopped for {recording['game_name']}"
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
-        
-def export_data(game_name, export_path, date_range=None):
-    """Export game data to a spreadsheet"""
-    try:
-        # Create export directory if it doesn't exist
-        os.makedirs(export_path, exist_ok=True)
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{game_name}_stats_{timestamp}.csv"
-        file_path = os.path.join(export_path, filename)
-        
-        # Query database for the game data
-        # This is a simplified example - you'd need to implement the actual query
-        # based on your database schema and requirements
-        
-        # For now, let's assume we have a function to get the data
-        # game_data = Database.get_game_data(game_name, date_range)
-        
-        # Export to CSV
-        # save_to_csv(game_data, file_path)
-        
-        return f"Data exported successfully to {filename}"
-    except Exception as e:
-        return f"Error: Export failed: {str(e)}"
-        
+
 def start_screen_recording(recording_id):
-    """Start screen recording using FFmpeg"""
+    """Starts the FFmpeg screen recording process."""
     recording = active_recordings[recording_id]
     
     ffmpeg_cmd = [
         "ffmpeg",
-        "-f", "gdigrab",
+        "-f", "gdigrab",  # Use gdigrab for Windows
         "-framerate", "60",
         "-i", "desktop",
         "-vcodec", "libx264",
@@ -113,13 +92,26 @@ def start_screen_recording(recording_id):
     ]
     
     try:
+        # Use CREATE_NO_WINDOW to hide the console window on Windows
         process = subprocess.Popen(ffmpeg_cmd, creationflags=subprocess.CREATE_NO_WINDOW)
         recording["screen_process"] = process
     except Exception as e:
         print(f"Error starting screen recording: {e}")
         
 def start_data_collection(recording_id):
-    """Start collecting game data via RabbitMQ"""
-    # This would implement the data collection logic from receive.py
-    # but adapted to work with the recording system
-    pass
+    """Starts collecting game data. This is a placeholder for your RabbitMQ logic."""
+    recording = active_recordings[recording_id]
+    print(f"Starting data collection for {recording['game_name']} (ID: {recording_id})")
+    
+    # This is where you would adapt the logic from your `receive.py` file.
+    # For now, it's a placeholder that just waits.
+    while active_recordings.get(recording_id, {}).get("status") == "active":
+        # In a real implementation, you would:
+        # 1. Connect to RabbitMQ
+        # 2. Listen for messages
+        # 3. Decrypt them using dataFormat.decrypt()
+        # 4. Save them using dbManage.save_ddataframe()
+        import time
+        time.sleep(5) # Wait 5 seconds before checking status again
+        
+    print(f"Data collection stopped for {recording['game_name']}.")

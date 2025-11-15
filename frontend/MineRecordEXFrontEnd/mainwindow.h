@@ -1,9 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+// --- STEP 1: Include pybind11 FIRST ---
 #include <pybind11/embed.h>
 namespace py = pybind11;
 
+// --- STEP 2: Now include Qt headers ---
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QFileInfo>
@@ -33,10 +35,10 @@ protected:
 
 private slots:
     void on_actionAdd_Game_triggered();
-    void on_actionExit_Application_triggered();  // Slot for exit action
-    void on_actionGitHub_triggered();  // Slot for GitHub action
-    void on_actionInfo_triggered();  // Slot for Info action
-    void on_actionSettings_triggered();  // Slot for Settings action
+    void on_actionExit_Application_triggered();
+    void on_actionGitHub_triggered();
+    void on_actionInfo_triggered();
+    void on_actionSettings_triggered();
     void updateProgramStatus();
     void showContextMenu(const QPoint &pos);
     void removeGame();
@@ -52,7 +54,6 @@ private:
 
     // Python communication methods
     void initializePythonBackend();
-    void finalizePythonBackend(); // This can now be removed if you use the RAII guard
     QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
     QString stopPythonRecording(const QString &recordingId);
 
@@ -69,8 +70,9 @@ private:
     QAction *removeAction;
     QAction *startRecordingAction;
     QAction *stopRecordingAction;
-    InfoDialog *infoDialog;  // Info dialog instance
-    SettingsDialog *settingsDialog;  // Settings dialog instance
-    QString *activeRecordingId;
+    InfoDialog *infoDialog;
+    SettingsDialog *settingsDialog;
+    QString activeRecordingId;
 };
+
 #endif // MAINWINDOW_H
