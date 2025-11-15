@@ -1,6 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <pybind11/embed.h>
+namespace py = pybind11;
+
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QFileInfo>
@@ -47,6 +50,16 @@ private:
     void loadProgramData();
     void applySettings();
 
+    // Python communication methods
+    void initializePythonBackend();
+    void finalizePythonBackend(); // This can now be removed if you use the RAII guard
+    QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
+    QString stopPythonRecording(const QString &recordingId);
+
+    // pybind11 specific
+    py::scoped_interpreter guard{}; // RAII guard for the interpreter
+    py::module backend_module;      // Holds the imported Python module
+
     Ui::MainWindow *ui;
     QTableWidget *executableTable;
     QWidget *centralWidget;
@@ -58,5 +71,6 @@ private:
     QAction *stopRecordingAction;
     InfoDialog *infoDialog;  // Info dialog instance
     SettingsDialog *settingsDialog;  // Settings dialog instance
+    QString *activeRecordingId;
 };
 #endif // MAINWINDOW_H
