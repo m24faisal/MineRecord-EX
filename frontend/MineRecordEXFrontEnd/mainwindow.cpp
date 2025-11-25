@@ -25,29 +25,51 @@ MainWindow::MainWindow(QWidget *parent) :
     settingsDialog(nullptr)
 {
     ui->setupUi(this);
+
+    // Load settings before setting up UI
+    loadSettings();
+
+    // Apply settings before setting up UI
     applySettings();
+
+    // Set up the main window UI
     setupUI();
 
+    // Set up a timer to update program status
     updateTimer = new QTimer(this);
     connect(updateTimer, SIGNAL(timeout()), this, SLOT(updateProgramStatus()));
-    updateTimer->start(1000);
-    ProcessDetector::instance().setUpdateInterval(500);
-    connect(&ProcessDetector::instance(), SIGNAL(processListUpdated()), this, SLOT(updateProgramStatus()));
+    updateTimer->start(1000); // Update every 1 second (faster)
+
+    // Configure the process detector for faster updates
+    ProcessDetector::instance().setUpdateInterval(500); // Update every 500ms
+
+    // Connect to the process detector's update signal
+    connect(&ProcessDetector::instance(), SIGNAL(processListUpdated()),
+            this, SLOT(updateProgramStatus()));
+
+    // Install event filter on the application to catch click events
     qApp->installEventFilter(this);
 
+    // Create context menu
     contextMenu = new QMenu(this);
     removeAction = new QAction("Remove Game", this);
     startRecordingAction = new QAction("Start Recording", this);
     stopRecordingAction = new QAction("Stop Recording", this);
+
     contextMenu->addAction(removeAction);
     contextMenu->addAction(startRecordingAction);
     contextMenu->addAction(stopRecordingAction);
+
+    // Connect context menu actions to slots
     connect(removeAction, &QAction::triggered, this, &MainWindow::removeGame);
     connect(startRecordingAction, &QAction::triggered, this, &MainWindow::startRecording);
     connect(stopRecordingAction, &QAction::triggered, this, &MainWindow::stopRecording);
+
+    // Enable context menu on the table
     executableTable->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(executableTable, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
 
+    // Load saved program data
     loadProgramData();
 
     // --- Python Integration ---
@@ -56,11 +78,22 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    // Save program data before closing
     saveProgramData();
+
+    // Clean up
     qDeleteAll(programs);
     programs.clear();
-    if (infoDialog) delete infoDialog;
-    if (settingsDialog) delete settingsDialog;
+
+    // Delete dialogs if they exist
+    if (infoDialog) {
+        delete infoDialog;
+    }
+
+    if (settingsDialog) {
+        delete settingsDialog;
+    }
+
     // Python interpreter is finalized automatically by the `py::scoped_interpreter` guard
     delete ui;
 }
@@ -84,7 +117,11 @@ QString MainWindow::startPythonRecording(const QString &gameName, const QString 
     if (!backend_module) return "Error: Python backend is not initialized.";
     try {
         py::object result = backend_module.attr("start_recording")(
-            gameName.toStdString(), gamePath.toStdString(), recordingPath.toStdString());
+            gameName.toStdString(),
+            gamePath.toStdString(),
+            recordingPath.toStdString(),
+            enableDataCollection  // Pass the data collection setting
+            );
         return QString::fromStdString(result.cast<std::string>());
     } catch (const py::error_already_set &e) {
         return QString("Python Error: %1").arg(e.what());
@@ -114,12 +151,18 @@ void MainWindow::startRecording()
 
     QString result = startPythonRecording(program->name(), program->path(), recordingPath);
 
-    if (result.startsWith("Error:")) { QMessageBox::warning(this, "Recording Failed", result); return; }
+    if (result.startsWith("Error:")) {
+        QMessageBox::warning(this, "Recording Failed", result);
+        return;
+    }
 
     program->setRecording(true);
     activeRecordingId = result;
     QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
-    if (recordingItem) { recordingItem->setText("Yes"); recordingItem->setBackground(QBrush(QColor(255, 165, 0))); }
+    if (recordingItem) {
+        recordingItem->setText("Yes");
+        recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
+    }
     QMessageBox::information(this, "Recording Started", "Recording started for " + program->name());
     saveProgramData();
 }
@@ -131,20 +174,25 @@ void MainWindow::stopRecording()
     ProgramInfo *program = programs.value(path, nullptr); if (!program) return;
 
     QString result = stopPythonRecording(activeRecordingId);
-    if (result.startsWith("Error:")) { QMessageBox::warning(this, "Recording Failed", result); return; }
+    if (result.startsWith("Error:")) {
+        QMessageBox::warning(this, "Recording Failed", result);
+        return;
+    }
 
     program->setRecording(false);
     activeRecordingId.clear();
     QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
-    if (recordingItem) { recordingItem->setText("No"); recordingItem->setBackground(QBrush()); }
+    if (recordingItem) {
+        recordingItem->setText("No");
+        recordingItem->setBackground(QBrush());
+    }
     QMessageBox::information(this, "Recording Stopped", "Recording stopped for " + program->name());
     saveProgramData();
 }
 
 
-// --- All other existing methods (unchanged) ---
-bool MainWindow::eventFilter(QObject *watched, QEvent *event)
-{
+// --- All other existing methods ---
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
     if (event->type() == QEvent::MouseButtonPress) {
         QWidget *widget = qobject_cast<QWidget*>(watched);
         if (widget && !executableTable->isAncestorOf(widget) && widget != executableTable) {
@@ -154,8 +202,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     return QMainWindow::eventFilter(watched, event);
 }
 
-void MainWindow::setupUI()
-{
+void MainWindow::setupUI() {
     centralWidget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
     executableTable = new QTableWidget(this);
@@ -174,8 +221,7 @@ void MainWindow::setupUI()
     resize(800, 600);
 }
 
-void MainWindow::on_actionAdd_Game_triggered()
-{
+void MainWindow::on_actionAdd_Game_triggered() {
     QString filePath = QFileDialog::getOpenFileName(this, "Select Executable", QDir::homePath(), "Executable Files (*.exe *.bat *.cmd *.app *.sh);;All Files (*)");
     if (!filePath.isEmpty()) {
         QFileInfo fileInfo(filePath);
@@ -183,34 +229,22 @@ void MainWindow::on_actionAdd_Game_triggered()
     }
 }
 
-void MainWindow::on_actionExit_Application_triggered()
-{
-    this->close();
-}
-
-void MainWindow::on_actionGitHub_triggered()
-{
-    QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories"));
-}
-
-void MainWindow::on_actionInfo_triggered()
-{
+void MainWindow::on_actionExit_Application_triggered() { this->close(); }
+void MainWindow::on_actionGitHub_triggered() { QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories")); }
+void MainWindow::on_actionInfo_triggered() {
     if (!infoDialog) infoDialog = new InfoDialog(this);
     infoDialog->show();
     infoDialog->raise();
     infoDialog->activateWindow();
 }
-
-void MainWindow::on_actionSettings_triggered()
-{
+void MainWindow::on_actionSettings_triggered() {
     if (!settingsDialog) settingsDialog = new SettingsDialog(this);
     settingsDialog->show();
     settingsDialog->raise();
     settingsDialog->activateWindow();
 }
 
-void MainWindow::addExecutableToTable(const QFileInfo &fileInfo)
-{
+void MainWindow::addExecutableToTable(const QFileInfo &fileInfo) {
     QString filePath = fileInfo.absoluteFilePath();
     if (programs.contains(filePath)) {
         QMessageBox::information(this, "Already Added", "This executable is already in the list.");
@@ -241,8 +275,7 @@ void MainWindow::addExecutableToTable(const QFileInfo &fileInfo)
     saveProgramData();
 }
 
-void MainWindow::updateProgramStatus()
-{
+void MainWindow::updateProgramStatus() {
     ProcessDetector &detector = ProcessDetector::instance();
     for (int i = 0; i < executableTable->rowCount(); ++i) {
         QTableWidgetItem *nameItem = executableTable->item(i, 0);
@@ -280,8 +313,7 @@ void MainWindow::updateProgramStatus()
     }
 }
 
-void MainWindow::saveProgramData()
-{
+void MainWindow::saveProgramData() {
     QSettings settings("YourCompany", "GameManager");
     settings.beginWriteArray("Programs");
     int index = 0;
@@ -297,8 +329,7 @@ void MainWindow::saveProgramData()
     settings.endArray();
 }
 
-void MainWindow::loadProgramData()
-{
+void MainWindow::loadProgramData() {
     QSettings settings("YourCompany", "GameManager");
     int size = settings.beginReadArray("Programs");
     for (int i = 0; i < size; ++i) {
@@ -335,10 +366,12 @@ void MainWindow::loadProgramData()
     }
     settings.endArray();
     executableTable->resizeColumnsToContents();
+
+    // Load data collection setting
+    enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
 
-void MainWindow::showContextMenu(const QPoint &pos)
-{
+void MainWindow::showContextMenu(const QPoint &pos) {
     QTableWidgetItem *item = executableTable->itemAt(pos);
     if (item) {
         executableTable->selectRow(item->row());
@@ -353,8 +386,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     }
 }
 
-void MainWindow::removeGame()
-{
+void MainWindow::removeGame() {
     int currentRow = executableTable->currentRow();
     if (currentRow >= 0) {
         QString path = executableTable->item(currentRow, 0)->data(Qt::UserRole).toString();
@@ -369,8 +401,7 @@ void MainWindow::removeGame()
     }
 }
 
-void MainWindow::applySettings()
-{
+void MainWindow::applySettings() {
     QSettings settings("YourCompany", "GameManager");
     QString theme = settings.value("theme", "Default").toString();
     if (theme == "Dark") {
@@ -382,4 +413,7 @@ void MainWindow::applySettings()
     } else {
         QApplication::setStyle(QStyleFactory::create("windowsvista"));
     }
+
+    // Load data collection setting
+    enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }

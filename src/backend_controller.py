@@ -16,7 +16,7 @@ from screenRecord import record_screen
 # Global dictionary to track active recordings
 active_recordings = {}
 
-def start_recording(game_name, game_path, recording_path):
+def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
     try:
         recording_id = str(uuid.uuid4())
@@ -36,7 +36,8 @@ def start_recording(game_name, game_path, recording_path):
             "start_time": datetime.now(),
             "status": "active",
             "screen_process": None,
-            "data_thread": None
+            "data_thread": None,
+            "enable_data_collection": enable_data_collection
         }
         
         # Start screen recording in a separate thread to not block the C++ call
@@ -44,11 +45,12 @@ def start_recording(game_name, game_path, recording_path):
         screen_thread.daemon = True
         screen_thread.start()
         
-        # Start data collection in a separate thread
-        data_thread = threading.Thread(target=start_data_collection, args=(recording_id,))
-        data_thread.daemon = True
-        data_thread.start()
-        active_recordings[recording_id]["data_thread"] = data_thread
+        # Start data collection in a separate thread if enabled
+        if enable_data_collection:
+            data_thread = threading.Thread(target=start_data_collection, args=(recording_id,))
+            data_thread.daemon = True
+            data_thread.start()
+            active_recordings[recording_id]["data_thread"] = data_thread
         
         return recording_id
     except Exception as e:

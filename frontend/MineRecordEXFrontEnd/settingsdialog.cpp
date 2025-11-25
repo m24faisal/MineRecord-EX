@@ -8,7 +8,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
     setupUI();
     loadSettings();
     setWindowTitle("Settings");
-    setFixedSize(600, 400);
+    setFixedSize(600, 450);  // Increased height to accommodate new checkbox
     setModal(true);
 }
 
@@ -131,8 +131,18 @@ void SettingsDialog::setupPathSettings()
     exportLayout->addWidget(exportLabel);
     exportLayout->addLayout(exportPathLayout);
 
+    // Data collection settings
+    QGroupBox *dataCollectionGroup = new QGroupBox("Data Collection", this);
+    QVBoxLayout *dataCollectionLayout = new QVBoxLayout(dataCollectionGroup);
+
+    enableDataCollectionCheckBox = new QCheckBox("Enable data collection during recording", this);
+    enableDataCollectionCheckBox->setToolTip("When checked, game data will be collected through receive.py during recording");
+
+    dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
+
     layout->addWidget(recordingGroup);
     layout->addWidget(exportGroup);
+    layout->addWidget(dataCollectionGroup);  // Add the new group
     layout->addStretch();
 }
 
@@ -154,6 +164,10 @@ void SettingsDialog::loadSettings()
 
     exportPath = settings.value("exportPath", QDir::homePath() + "/GameExports").toString();
     exportPathEdit->setText(exportPath);
+
+    // Load data collection setting
+    enableDataCollection = settings.value("enableDataCollection", false).toBool();
+    enableDataCollectionCheckBox->setChecked(enableDataCollection);
 }
 
 void SettingsDialog::saveSettings()
@@ -167,6 +181,9 @@ void SettingsDialog::saveSettings()
     // Save paths
     settings.setValue("recordingPath", recordingPath);
     settings.setValue("exportPath", exportPath);
+
+    // Save data collection setting
+    settings.setValue("enableDataCollection", enableDataCollection);
 }
 
 void SettingsDialog::applySettings()
@@ -207,6 +224,7 @@ void SettingsDialog::onOkClicked()
     currentTheme = themeComboBox->currentText();
     recordingPath = recordingPathEdit->text();
     exportPath = exportPathEdit->text();
+    enableDataCollection = enableDataCollectionCheckBox->isChecked();
 
     saveSettings();
     applySettings();
@@ -225,6 +243,7 @@ void SettingsDialog::onApplyClicked()
     currentTheme = themeComboBox->currentText();
     recordingPath = recordingPathEdit->text();
     exportPath = exportPathEdit->text();
+    enableDataCollection = enableDataCollectionCheckBox->isChecked();
 
     saveSettings();
     applySettings();

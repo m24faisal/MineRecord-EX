@@ -73,6 +73,9 @@ private:
     InfoDialog *infoDialog;
     SettingsDialog *settingsDialog;
     QString activeRecordingId;
+
+    // Settings
+    bool enableDataCollection;  // New setting to track data collection preference
 };
 
 #endif // MAINWINDOW_H

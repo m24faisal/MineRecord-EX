@@ -16,6 +16,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
+#include <QCheckBox>  // Add this include
 
 class SettingsDialog : public QDialog
 {
@@ -65,10 +66,14 @@ private:
     QLineEdit *exportPathEdit;
     QPushButton *exportBrowseButton;
 
+    // New checkbox for data collection
+    QCheckBox *enableDataCollectionCheckBox;
+
     // Settings values
     QString currentTheme;
     QString recordingPath;
     QString exportPath;
+    bool enableDataCollection;  // New setting value
 };
 
 #endif // SETTINGSDIALOG_H
