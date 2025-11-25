@@ -27,6 +27,6 @@ RESOURCES += \
 PYBIND11_PATH = C:/Users/Mahir/AppData/Local/Programs/Python/Python313/Lib/site-packages/pybind11/include
 PYTHON_PATH = C:\Users\Mahir\AppData\Local\Programs\Python\Python313
 PYTHON_VERSION = 313
-INCLUDEPATH += $$PYTHON_PATH/include
+INCLUDEPATH += $$PYTHON_PATH/include $$PYBIND11_PATH
 LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
 

@@ -50,6 +50,7 @@ private:
     void addExecutableToTable(const QFileInfo &fileInfo);
     void saveProgramData();
     void loadProgramData();
+    void loadSettings();
     void applySettings();
 
     // Python communication methods
@@ -76,6 +77,8 @@ private:
 
     // Settings
     bool enableDataCollection;  // New setting to track data collection preference
+    QString recordingPath;
+    QString exportPath;
 };
 
 #endif // MAINWINDOW_H

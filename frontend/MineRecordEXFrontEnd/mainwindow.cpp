@@ -328,6 +328,20 @@ void MainWindow::saveProgramData() {
     }
     settings.endArray();
 }
+void MainWindow::loadSettings()
+{
+    QSettings settings("YourCompany", "GameManager");
+
+    // Load theme
+    // currentTheme = settings.value("theme", "Default").toString(); // applySettings() handles this
+
+    // Load paths
+    recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
+    exportPath = settings.value("exportPath", QDir::homePath() + "/GameExports").toString();
+
+    // Load data collection setting
+    enableDataCollection = settings.value("enableDataCollection", true).toBool();
+}
 
 void MainWindow::loadProgramData() {
     QSettings settings("YourCompany", "GameManager");
