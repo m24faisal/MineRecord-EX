@@ -17,6 +17,8 @@
 #include <QUrl>
 #include <QStyleFactory>
 #include <QDebug>
+#include <QCoreApplication>
+#include <QDir>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -102,13 +104,25 @@ MainWindow::~MainWindow()
 void MainWindow::initializePythonBackend()
 {
     try {
-        py::exec("import sys; sys.path.append('./src')");
+        // Get the directory where the application executable is located
+        QString appDirPath = QCoreApplication::applicationDirPath();
+        QString backendPath = QDir::toNativeSeparators(appDirPath + "/backend");
+
+        // Add the backend directory to Python's path
+        std::string pythonCode = "import sys\nsys.path.append('" + backendPath.toStdString() + "')";
+        py::exec(pythonCode);
+
         backend_module = py::module::import("backend_controller");
         qDebug() << "Python backend initialized successfully.";
+        qDebug() << "Backend path added to sys.path:" << backendPath;
+
     } catch (const py::error_already_set &e) {
-        QString errorMsg = "Python initialization failed: ";
+        QString errorMsg = "Python initialization failed. Could not find the backend_controller.py file.\n";
+        errorMsg += "Please ensure the 'backend' folder is next to the executable.\n";
+        errorMsg += "Searched for backend at: " + QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/backend") + "\n";
+        errorMsg += "Python Error: ";
         errorMsg += e.what();
-        QMessageBox::critical(this, "Python Error", errorMsg);
+        QMessageBox::critical(this, "Python Backend Error", errorMsg);
     }
 }
 

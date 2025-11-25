@@ -30,3 +30,9 @@ PYTHON_VERSION = 313
 INCLUDEPATH += $$PYTHON_PATH/include $$PYBIND11_PATH
 LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
 
+backend_copy.target = copy_backend
+backend_copy.commands = $(COPY_DIR) \"$$PWD/../backend\" \"$$OUT_PWD/\"
+backend_copy.depends = first
+
+QMAKE_EXTRA_TARGETS += backend_copy
+
