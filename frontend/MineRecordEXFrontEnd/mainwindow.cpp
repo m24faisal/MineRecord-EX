@@ -102,7 +102,7 @@ MainWindow::~MainWindow()
 void MainWindow::initializePythonBackend()
 {
     try {
-        py::exec("import sys; sys.path.append('./backend')");
+        py::exec("import sys; sys.path.append('./src')");
         backend_module = py::module::import("backend_controller");
         qDebug() << "Python backend initialized successfully.";
     } catch (const py::error_already_set &e) {
