@@ -25,12 +25,8 @@ RESOURCES += \
     resources.qrc
 
 PYBIND11_PATH = C:/Users/Mahir/AppData/Local/Programs/Python/Python313/Lib/site-packages/pybind11/include
+PYTHON_PATH = C:\Users\Mahir\AppData\Local\Programs\Python\Python313
+PYTHON_VERSION = 313
+INCLUDEPATH += $$PYTHON_PATH/include
+LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
 
-INCLUDEPATH += $$PYBIND11_PATH
-
-win32{
-    PYTHON_VERSION = 313
-    PYTHON_PATH = C:\Users\Mahir\AppData\Local\Programs\Python\Python313
-    INCLUDEPATH += $$PYTHON_PATH/include
-    LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
-}
