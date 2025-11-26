@@ -19,6 +19,10 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
+#include <QDirIterator>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -103,13 +107,41 @@ MainWindow::~MainWindow()
 // --- Python Backend Methods ---
 void MainWindow::initializePythonBackend()
 {
-    QString backendPath = "C:/Users/Mahir/Documents/MineRecord EX/frontend/MineRecordEXFrontEnd/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/"
-                          "debug/backend";
     try {
-        // --- DIAGNOSTIC: Use a hardcoded absolute path ---
+        // Get the directory where the application executable is located
+        QString appDirPath = QCoreApplication::applicationDirPath();
+        QString configPath = QDir::toNativeSeparators(appDirPath + "/config.txt");
+
+        // --- DIAGNOSTIC: Print the path and list files ---
+        qDebug() << "Application Directory Path:" << appDirPath;
+        qDebug() << "Looking for config.txt at:" << configPath;
+
+        qDebug() << "Files in application directory:";
+        QDirIterator it(appDirPath, QDir::Files);
+        while (it.hasNext()) {
+            it.next();
+            qDebug() << "  -" << it.fileName();
+        }
+        // --- END DIAGNOSTIC ---
+
+        QString backendPath;
+
+        // Read the path from the config file
+        QFile configFile(configPath);
+        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&configFile);
+            backendPath = in.readLine();
+            configFile.close();
+        } else {
+            // If the config file doesn't exist, show an error and stop
+            QMessageBox::critical(this, "Configuration Error",
+                                  "Could not find config.txt in the application directory.");
+            return; // Stop initialization
+        }
+
         // Add the backend directory to Python's path using a raw string
-        std::string pythonCode = "import sys\nsys.path.append(r'" + backendPath.toStdString() + "')";
-        py::exec(pythonCode);
+        std::string pythonPathCode = "import sys\nsys.path.append(r'" + backendPath.toStdString() + "')";
+        py::exec(pythonPathCode);
 
         backend_module = py::module::import("backend_controller");
         qDebug() << "SUCCESS: Python backend initialized.";
@@ -117,8 +149,6 @@ void MainWindow::initializePythonBackend()
 
     } catch (const py::error_already_set &e) {
         QString errorMsg = "Python initialization failed.\n";
-        errorMsg += "DIAGNOSTIC: Attempted to load from hardcoded path:\n";
-        errorMsg += backendPath + "\n";
         errorMsg += "Python Error: ";
         errorMsg += e.what();
         QMessageBox::critical(this, "Python Backend Error", errorMsg);
