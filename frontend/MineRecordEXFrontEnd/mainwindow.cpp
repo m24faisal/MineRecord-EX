@@ -21,8 +21,6 @@
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
-#include <QDebug>
-#include <QDirIterator>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -107,24 +105,11 @@ MainWindow::~MainWindow()
 // --- Python Backend Methods ---
 void MainWindow::initializePythonBackend()
 {
+    QString backendPath;
     try {
         // Get the directory where the application executable is located
         QString appDirPath = QCoreApplication::applicationDirPath();
         QString configPath = QDir::toNativeSeparators(appDirPath + "/config.txt");
-
-        // --- DIAGNOSTIC: Print the path and list files ---
-        qDebug() << "Application Directory Path:" << appDirPath;
-        qDebug() << "Looking for config.txt at:" << configPath;
-
-        qDebug() << "Files in application directory:";
-        QDirIterator it(appDirPath, QDir::Files);
-        while (it.hasNext()) {
-            it.next();
-            qDebug() << "  -" << it.fileName();
-        }
-        // --- END DIAGNOSTIC ---
-
-        QString backendPath;
 
         // Read the path from the config file
         QFile configFile(configPath);
@@ -149,6 +134,7 @@ void MainWindow::initializePythonBackend()
 
     } catch (const py::error_already_set &e) {
         QString errorMsg = "Python initialization failed.\n";
+        errorMsg += "Attempted to load backend from: " + backendPath + "\n";
         errorMsg += "Python Error: ";
         errorMsg += e.what();
         QMessageBox::critical(this, "Python Backend Error", errorMsg);

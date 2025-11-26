@@ -1,0 +1,6 @@
+@echo off
+echo Copying backend folder...
+xcopy /E /I /Y "C:\Users\Mahir\Documents\MineRecordEX\backend" "%1\backend"
+echo Copying config file...
+copy /Y "C:\Users\Mahir\Documents\MineRecordEX\frontend\MineRecordEXFrontEnd\config.txt" "%1\"
+echo Done.
