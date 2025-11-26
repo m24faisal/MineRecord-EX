@@ -108,8 +108,8 @@ void MainWindow::initializePythonBackend()
         QString appDirPath = QCoreApplication::applicationDirPath();
         QString backendPath = QDir::toNativeSeparators(appDirPath + "/backend");
 
-        // Add the backend directory to Python's path
-        std::string pythonCode = "import sys\nsys.path.append('" + backendPath.toStdString() + "')";
+        // Add the backend directory to Python's path using a raw string to handle Windows backslashes
+        std::string pythonCode = "import sys\nsys.path.append(r'" + backendPath.toStdString() + "')";
         py::exec(pythonCode);
 
         backend_module = py::module::import("backend_controller");
