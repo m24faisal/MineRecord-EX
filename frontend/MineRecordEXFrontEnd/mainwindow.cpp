@@ -103,23 +103,22 @@ MainWindow::~MainWindow()
 // --- Python Backend Methods ---
 void MainWindow::initializePythonBackend()
 {
+    QString backendPath = "C:/Users/Mahir/Documents/MineRecord EX/frontend/MineRecordEXFrontEnd/build/Desktop_Qt_6_9_0_MinGW_64_bit-Debug/"
+                          "debug/backend";
     try {
-        // Get the directory where the application executable is located
-        QString appDirPath = QCoreApplication::applicationDirPath();
-        QString backendPath = QDir::toNativeSeparators(appDirPath + "/backend");
-
-        // Add the backend directory to Python's path using a raw string to handle Windows backslashes
+        // --- DIAGNOSTIC: Use a hardcoded absolute path ---
+        // Add the backend directory to Python's path using a raw string
         std::string pythonCode = "import sys\nsys.path.append(r'" + backendPath.toStdString() + "')";
         py::exec(pythonCode);
 
         backend_module = py::module::import("backend_controller");
-        qDebug() << "Python backend initialized successfully.";
+        qDebug() << "SUCCESS: Python backend initialized.";
         qDebug() << "Backend path added to sys.path:" << backendPath;
 
     } catch (const py::error_already_set &e) {
-        QString errorMsg = "Python initialization failed. Could not find the backend_controller.py file.\n";
-        errorMsg += "Please ensure the 'backend' folder is next to the executable.\n";
-        errorMsg += "Searched for backend at: " + QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/backend") + "\n";
+        QString errorMsg = "Python initialization failed.\n";
+        errorMsg += "DIAGNOSTIC: Attempted to load from hardcoded path:\n";
+        errorMsg += backendPath + "\n";
         errorMsg += "Python Error: ";
         errorMsg += e.what();
         QMessageBox::critical(this, "Python Backend Error", errorMsg);
