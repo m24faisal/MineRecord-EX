@@ -1,31 +1,33 @@
-# backend/screenRecord.py
-import os
-import time
 import subprocess
 import sys
-import msvcrt  # For detecting a keypress on Windows
 
-def record_screen(output_file="output.mp4", fps=60):
+def start_ffmpeg_process(output_file, fps=60):
     """
-    Records the screen by starting a process and terminating it on 'q'.
-    This function is now designed to be called from another script.
+    Starts the FFmpeg process and returns the process object.
+    The parent script is responsible for stopping it.
     """
+    # A more robust FFmpeg command for gdigrab on Windows
     ffmpeg_cmd = [
         "ffmpeg",
-        "-f", "gdigrab",  # Use gdigrab for Windows
+        "-f", "gdigrab",
         "-framerate", str(fps),
+        "-thread_queue_size", "1024", # Handle buffering
+        "-probesize", "10M",       # Probe for larger streams
         "-i", "desktop",
         "-vcodec", "libx264",
         "-preset", "fast",
-        "-y",  # Overwrite output file if it exists
+        "-crf", "23",             # Constant Rate Factor (quality)
+        "-pix_fmt", "yuv420p",      # Ensure compatibility
+        "-y", # Overwrite output file if it exists
         output_file
     ]
     
-    print(f"Starting FFmpeg process. Output will be saved to: {output_file}")
+    print(f"Starting FFmpeg with command: {' '.join(ffmpeg_cmd)}")
+    
     try:
-        # Use CREATE_NO_WINDOW to hide the console window on Windows
+        # Start the process. We don't need stdin anymore.
         process = subprocess.Popen(ffmpeg_cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-        return process # Return the process object so it can be managed
+        return process
     except FileNotFoundError:
         print("\n!!! CRITICAL ERROR: 'ffmpeg' command not found. !!!")
         print("Please ensure FFmpeg is installed and in your system's PATH.")
@@ -35,31 +37,19 @@ def record_screen(output_file="output.mp4", fps=60):
         return None
 
 if __name__ == "__main__":
-    # This block allows the script to be run standalone for testing
+    # This allows the script to be run standalone for testing
     if len(sys.argv) < 2:
         print("Usage: python screenRecord.py <output_file.mp4>")
         sys.exit(1)
         
     output_file = sys.argv[1]
-    process = record_screen(output_file)
+    process = start_ffmpeg_process(output_file)
     
     if process:
-        print("Recording started. Press 'q' to stop and save the recording.")
+        print("Recording started. Press Ctrl+C to stop.")
         try:
-            while True:
-                if msvcrt.kbhit():
-                    if msvcrt.getwch().lower() == 'q':
-                        print("\n'q' detected. Terminating FFmpeg process...")
-                        break
-                time.sleep(0.1)
+            process.wait() # Wait for the process to finish
         except KeyboardInterrupt:
             print("\nCtrl+C detected. Terminating FFmpeg process...")
-        finally:
             process.terminate()
-            try:
-                process.wait(timeout=10)
-                print("FFmpeg terminated gracefully. File saved.")
-            except subprocess.TimeoutExpired:
-                print("FFmpeg did not terminate in time. Forcing it to close.")
-                process.kill()
-                print("FFmpeg killed. File may be corrupted, but most of it should be saved.")
+            process.wait()

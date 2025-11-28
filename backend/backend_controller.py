@@ -13,6 +13,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataFormat import DataSnap
 from dbManage import Database
 
+# Import the simple FFmpeg launcher
+from screenRecord import start_ffmpeg_process
+
 # Global dictionary to track active recordings
 active_recordings = {}
 
@@ -38,14 +41,13 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
         video_filename = f"{game_name}_{timestamp}.mp4"
         video_path = os.path.join(recording_dir, video_filename)
         
-        # --- Launch screenRecord.py as a subprocess ---
-        script_path = os.path.join(os.path.dirname(__file__), 'screenRecord.py')
-        screen_cmd = ["python", script_path, video_path]
-        
+        # --- Launch FFmpeg using our new simple launcher ---
         print(f"Starting screen recording for {game_name}...")
-        # Start the process. We need stdin to be able to send 'q' later.
-        screen_process = subprocess.Popen(screen_cmd, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+        screen_process = start_ffmpeg_process(video_path)
         
+        if not screen_process:
+            return "Error: Failed to start FFmpeg process."
+
         active_recordings[recording_id] = {
             "game_name": game_name,
             "game_path": game_path,
@@ -79,13 +81,23 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # --- Gracefully terminate the screen recording process ---
+        # --- Robustly terminate the screen recording process ---
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
             print(f"Stopping screen recording for {recording['game_name']}...")
-            # Send 'q' followed by a newline to the process's stdin
-            screen_process.communicate(input='q\n'.encode())
-            print("Screen recording process stopped gracefully.")
+            
+            # First, try to terminate gracefully (SIGTERM)
+            screen_process.terminate()
+            
+            # Wait up to 10 seconds for the process to exit
+            try:
+                screen_process.wait(timeout=10)
+                print("FFmpeg process terminated gracefully.")
+            except subprocess.TimeoutExpired:
+                print("FFmpeg did not terminate, killing it forcefully.")
+                # If it doesn't exit, force kill it (SIGKILL)
+                screen_process.kill()
+                print("FFmpeg process killed. Video file should be playable.")
         
         return f"Recording stopped for {recording['game_name']}"
     except Exception as e:
@@ -96,6 +108,7 @@ def start_data_collection(recording_id):
     recording = active_recordings[recording_id]
     print(f"Starting data collection for {recording['game_name']} (ID: {recording_id})")
     
+    # This is where you would adapt the logic from your `receive.py` file.
     while active_recordings.get(recording_id, {}).get("status") == "active":
         # ... your data collection logic here ...
         import time
