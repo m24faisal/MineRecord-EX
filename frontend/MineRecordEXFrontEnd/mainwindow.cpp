@@ -80,8 +80,24 @@ MainWindow::MainWindow(QWidget *parent) :
     initializePythonBackend();
 }
 
+void MainWindow::shutdownPythonBackend()
+{
+    if (backend_module) {
+        try {
+            // Call the shutdown_all function in our Python backend
+            backend_module.attr("shutdown_all")();
+            qDebug() << "Called Python shutdown_all function.";
+        } catch (const py::error_already_set &e) {
+            qWarning() << "Error during Python shutdown:" << e.what();
+        }
+    }
+}
+
 MainWindow::~MainWindow()
 {
+    // Call shutdown function before anything else
+    shutdownPythonBackend();
+
     // Save program data before closing
     saveProgramData();
 
@@ -373,14 +389,14 @@ void MainWindow::loadSettings()
 }
 
 void MainWindow::loadProgramData() {
-    QSettings settings("YourCompany", "GameManager");
+    QSettings settings("GameManager");
     int size = settings.beginReadArray("Programs");
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
         QString name = settings.value("Name").toString();
         QString path = settings.value("Path").toString();
         qint64 timePlayed = settings.value("TimePlayed", 0).toLongLong();
-        bool isRecording = settings.value("IsRecording", false).toBool();
+        bool isRecording = false;
         if (!name.isEmpty() && !path.isEmpty()) {
             ProgramInfo *program = new ProgramInfo(name, path);
             program->setTimePlayedInSeconds(timePlayed);

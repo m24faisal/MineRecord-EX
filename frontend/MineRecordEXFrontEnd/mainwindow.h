@@ -57,6 +57,7 @@ private:
     void initializePythonBackend();
     QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
     QString stopPythonRecording(const QString &recordingId);
+    void shutdownPythonBackend();
 
     // pybind11 specific
     py::scoped_interpreter guard{}; // RAII guard for the interpreter
