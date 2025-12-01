@@ -14,7 +14,7 @@ from dataFormat import DataSnap
 from dbManage import Database
 
 # Import the simple FFmpeg launcher
-from screenRecord import start_ffmpeg_process
+from screenRecord import start_ffmpeg_process, finalize_video
 
 # Global dictionary to track active recordings
 active_recordings = {}
@@ -43,7 +43,8 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
         
         # --- Launch FFmpeg using our new simple launcher ---
         print(f"Starting screen recording for {game_name}...")
-        screen_process = start_ffmpeg_process(video_path)
+        screen_process, temp_file = start_ffmpeg_process(video_path)
+
         
         if not screen_process:
             return "Error: Failed to start FFmpeg process."
@@ -53,6 +54,7 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             "game_path": game_path,
             "recording_path": recording_dir,
             "video_path": video_path,
+            "temp_file": temp_file,
             "start_time": datetime.now(),
             "status": "active",
             "screen_process": screen_process,
@@ -81,25 +83,28 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # --- Robustly terminate the screen recording process ---
+        # --- Terminate and finalize the screen recording process ---
         screen_process = recording.get("screen_process")
+        temp_file = recording.get("temp_file")
+        final_file = recording.get("video_path")
         if screen_process and screen_process.poll() is None:
             print(f"Stopping screen recording for {recording['game_name']}...")
-            
-            # First, try to terminate gracefully (SIGTERM)
             screen_process.terminate()
-            
-            # Wait up to 10 seconds for the process to exit
             try:
-                screen_process.wait(timeout=10)
-                print("FFmpeg process terminated gracefully.")
+                screen_process.wait(timeout=5)
+                print("FFmpeg process terminated.")
             except subprocess.TimeoutExpired:
                 print("FFmpeg did not terminate, killing it forcefully.")
-                # If it doesn't exit, force kill it (SIGKILL)
                 screen_process.kill()
-                print("FFmpeg process killed. Video file should be playable.")
+                print("FFmpeg process killed.")
         
-        return f"Recording stopped for {recording['game_name']}"
+        if temp_file and os.path.exists(temp_file):
+            if finalize_video(temp_file, final_file):
+                return f"Recording stopped and finalized for {recording['game_name']}"
+            else:
+                return f"Error: Failed to finalize video for {recording['game_name']}"
+        else:
+            return f"Error: Temporary video file not found for {recording['game_name']}"
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
 
