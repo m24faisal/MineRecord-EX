@@ -254,7 +254,7 @@ void MainWindow::setupUI() {
     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
     executableTable = new QTableWidget(this);
     executableTable->setColumnCount(4);
-    executableTable->setHorizontalHeaderLabels(QStringList() << "Program Name" << "Running" << "Time Played" << "Recording");
+    executableTable->setHorizontalHeaderLabels(QStringList() << "Program Name" << "Running" << "Time Played" << "Is this application being recorded?");
     executableTable->horizontalHeader()->setStretchLastSection(true);
     executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
