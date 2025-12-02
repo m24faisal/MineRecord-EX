@@ -82,14 +82,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::shutdownPythonBackend()
 {
+    qDebug() << "C++ SHUTDOWN: Shutting down Python backend...";
     if (backend_module) {
         try {
-            // Call the shutdown_all function in our Python backend
             backend_module.attr("shutdown_all")();
-            qDebug() << "Called Python shutdown_all function.";
+            qDebug() << "C++ SHUTDOWN: Successfully called Python shutdown_all function.";
         } catch (const py::error_already_set &e) {
-            qWarning() << "Error during Python shutdown:" << e.what();
+            qWarning() << "C++ SHUTDOWN: Error during Python shutdown:" << e.what();
         }
+    } else {
+        qDebug() << "C++ SHUTDOWN: Python backend module was not initialized.";
     }
 }
 

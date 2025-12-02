@@ -21,13 +21,21 @@ active_recordings = {}
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
-    print("Shutdown signal received. Stopping all active recordings...")
+    print("!!! SHUTDOWN: Shutdown signal received. Stopping all active recordings...")
+    
+    if not active_recordings:
+        print("!!! SHUTDOWN: No active recordings to stop.")
+        return
+
     # Create a list of IDs to avoid modifying the dictionary while iterating
     recording_ids_to_stop = list(active_recordings.keys())
+    print(f"!!! SHUTDOWN: Found {len(recording_ids_to_stop)} recordings to stop.")
     
     for recording_id in recording_ids_to_stop:
+        print(f"!!! SHUTDOWN: Stopping recording ID: {recording_id}")
         stop_recording(recording_id)
-    print("All recordings stopped.")
+    
+    print("!!! SHUTDOWN: All recordings have been stopped.")
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
