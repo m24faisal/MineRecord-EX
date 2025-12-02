@@ -13,18 +13,29 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataFormat import DataSnap
 from dbManage import Database
 
+# Import the simple FFmpeg launcher
+from screenRecord import start_ffmpeg_process
+
 # Global dictionary to track active recordings
 active_recordings = {}
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
-    print("Shutdown signal received. Stopping all active recordings...")
+    print("!!! SHUTDOWN: Shutdown signal received. Stopping all active recordings...")
+    
+    if not active_recordings:
+        print("!!! SHUTDOWN: No active recordings to stop.")
+        return
+
     # Create a list of IDs to avoid modifying the dictionary while iterating
     recording_ids_to_stop = list(active_recordings.keys())
+    print(f"!!! SHUTDOWN: Found {len(recording_ids_to_stop)} recordings to stop.")
     
     for recording_id in recording_ids_to_stop:
+        print(f"!!! SHUTDOWN: Stopping recording ID: {recording_id}")
         stop_recording(recording_id)
-    print("All recordings stopped.")
+    
+    print("!!! SHUTDOWN: All recordings have been stopped.")
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
@@ -38,14 +49,13 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
         video_filename = f"{game_name}_{timestamp}.mp4"
         video_path = os.path.join(recording_dir, video_filename)
         
-        # --- Launch screenRecord.py as a subprocess ---
-        script_path = os.path.join(os.path.dirname(__file__), 'screenRecord.py')
-        screen_cmd = ["python", script_path, video_path]
-        
+        # --- Launch FFmpeg using our new launcher ---
         print(f"Starting screen recording for {game_name}...")
-        # Start the process. We need stdin to be able to send 'q' later.
-        screen_process = subprocess.Popen(screen_cmd, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+        screen_process = start_ffmpeg_process(video_path)
         
+        if not screen_process:
+            return "Error: Failed to start FFmpeg process."
+
         active_recordings[recording_id] = {
             "game_name": game_name,
             "game_path": game_path,
@@ -79,23 +89,23 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # --- Gracefully terminate the screen recording process ---
+        # --- Gracefully stop the screen recording by sending 'q' ---
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
             print(f"Stopping screen recording for {recording['game_name']}...")
             # Send 'q' followed by a newline to the process's stdin
             screen_process.communicate(input='q\n'.encode())
-            print("Screen recording process stopped gracefully.")
+            print("Sent 'q' command to FFmpeg. It should exit gracefully.")
         
         return f"Recording stopped for {recording['game_name']}"
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
-
 def start_data_collection(recording_id):
     """Starts collecting game data. This is a placeholder for your RabbitMQ logic."""
     recording = active_recordings[recording_id]
     print(f"Starting data collection for {recording['game_name']} (ID: {recording_id})")
     
+    # This is where you would adapt the logic from your `receive.py` file.
     while active_recordings.get(recording_id, {}).get("status") == "active":
         # ... your data collection logic here ...
         import time
