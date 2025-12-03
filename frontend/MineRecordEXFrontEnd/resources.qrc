@@ -5,5 +5,7 @@
         <file>github-mark-white.svg</file>
         <file>Info.svg</file>
         <file>settings.svg</file>
+        <file>startRecord.svg</file>
+        <file>stopRecording.svg</file>
     </qresource>
 </RCC>
