@@ -27,6 +27,7 @@ public:
     QAction *actionGitHub;
     QAction *actionInfo;
     QAction *actionExit_Application;
+    QAction *actionPP;
     QWidget *centralwidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -65,6 +66,8 @@ public:
         actionExit_Application->setObjectName("actionExit_Application");
         QIcon icon4(QIcon::fromTheme(QIcon::ThemeIcon::ApplicationExit));
         actionExit_Application->setIcon(icon4);
+        actionPP = new QAction(MainWindow);
+        actionPP->setObjectName("actionPP");
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);
@@ -89,6 +92,7 @@ public:
         menuFile->addAction(actionSettings);
         menuFile->addAction(actionAdd_Game);
         menuFile->addAction(actionExit_Application);
+        menuFile->addAction(actionPP);
         menuAbout->addAction(actionGitHub);
         menuAbout->addAction(actionInfo);
 
@@ -105,6 +109,7 @@ public:
         actionGitHub->setText(QCoreApplication::translate("MainWindow", "GitHub", nullptr));
         actionInfo->setText(QCoreApplication::translate("MainWindow", "About MineRecordEX", nullptr));
         actionExit_Application->setText(QCoreApplication::translate("MainWindow", "Exit Program", nullptr));
+        actionPP->setText(QCoreApplication::translate("MainWindow", "PP", nullptr));
         menuFile->setTitle(QCoreApplication::translate("MainWindow", "File", nullptr));
         menuAbout->setTitle(QCoreApplication::translate("MainWindow", "About", nullptr));
     } // retranslateUi
