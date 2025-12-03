@@ -45,6 +45,8 @@ QMenuBar::item {
     <addaction name="actionSettings"/>
     <addaction name="actionAdd_Game"/>
     <addaction name="actionExit_Application"/>
+    <addaction name="actionStart_Recording"/>
+    <addaction name="actionStop_Recording"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -98,6 +100,24 @@ QMenuBar::item {
    </property>
    <property name="text">
     <string>Exit Program</string>
+   </property>
+  </action>
+  <action name="actionStart_Recording">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/startRecord.svg</normaloff>:/icons/startRecord.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Start Recording</string>
+   </property>
+  </action>
+  <action name="actionStop_Recording">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/stopRecording.svg</normaloff>:/icons/stopRecording.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Stop Recording</string>
    </property>
   </action>
  </widget>
