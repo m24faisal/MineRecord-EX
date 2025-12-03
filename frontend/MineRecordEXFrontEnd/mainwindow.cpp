@@ -30,6 +30,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    //connect(ui->actionStart_Recording, &QAction::triggered, this, &MainWindow::startRecording);
+    //connect(ui->actionStop_Recording, &QAction::triggered, this, &MainWindow::stopRecording);
+
     // Load settings before setting up UI
     loadSettings();
 
@@ -478,3 +481,31 @@ void MainWindow::applySettings() {
     // Load data collection setting
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
+
+/*void MainWindow::on_actionStart_Recording_triggered()
+{
+    // Find the currently selected row in the table
+    int currentRow = executableTable->currentRow();
+    if (currentRow < 0) {
+        QMessageBox::information(this, "No Game Selected", "Please select a game from the list to start recording.");
+        return;
+    }
+
+    // Call the existing startRecording() function
+    startRecording();
+}
+
+
+void MainWindow::on_actionStop_Recording_triggered()
+{
+    // Find the currently selected row in the table
+    int currentRow = executableTable->currentRow();
+    if (currentRow < 0) {
+        QMessageBox::information(this, "No Game Selected", "Please select a game from the list to stop recording.");
+        return;
+    }
+
+    // Call the existing stopRecording() function
+    stopRecording();
+}*/
+

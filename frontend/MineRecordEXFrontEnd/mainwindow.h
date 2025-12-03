@@ -44,6 +44,8 @@ private slots:
     void removeGame();
     void startRecording();
     void stopRecording();
+    //void on_actionStart_Recording_triggered();
+    //void on_actionStop_Recording_triggered();
 
 private:
     void setupUI();

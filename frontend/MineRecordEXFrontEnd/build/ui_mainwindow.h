@@ -27,8 +27,6 @@ public:
     QAction *actionGitHub;
     QAction *actionInfo;
     QAction *actionExit_Application;
-    QAction *actionStart_Recording;
-    QAction *actionStop_Recording;
     QWidget *centralwidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -67,16 +65,6 @@ public:
         actionExit_Application->setObjectName("actionExit_Application");
         QIcon icon4(QIcon::fromTheme(QIcon::ThemeIcon::ApplicationExit));
         actionExit_Application->setIcon(icon4);
-        actionStart_Recording = new QAction(MainWindow);
-        actionStart_Recording->setObjectName("actionStart_Recording");
-        QIcon icon5;
-        icon5.addFile(QString::fromUtf8(":/icons/startRecord.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
-        actionStart_Recording->setIcon(icon5);
-        actionStop_Recording = new QAction(MainWindow);
-        actionStop_Recording->setObjectName("actionStop_Recording");
-        QIcon icon6;
-        icon6.addFile(QString::fromUtf8(":/icons/stopRecording.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
-        actionStop_Recording->setIcon(icon6);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);
@@ -101,8 +89,6 @@ public:
         menuFile->addAction(actionSettings);
         menuFile->addAction(actionAdd_Game);
         menuFile->addAction(actionExit_Application);
-        menuFile->addAction(actionStart_Recording);
-        menuFile->addAction(actionStop_Recording);
         menuAbout->addAction(actionGitHub);
         menuAbout->addAction(actionInfo);
 
@@ -119,8 +105,6 @@ public:
         actionGitHub->setText(QCoreApplication::translate("MainWindow", "GitHub", nullptr));
         actionInfo->setText(QCoreApplication::translate("MainWindow", "About MineRecordEX", nullptr));
         actionExit_Application->setText(QCoreApplication::translate("MainWindow", "Exit Program", nullptr));
-        actionStart_Recording->setText(QCoreApplication::translate("MainWindow", "Start Recording", nullptr));
-        actionStop_Recording->setText(QCoreApplication::translate("MainWindow", "Stop Recording", nullptr));
         menuFile->setTitle(QCoreApplication::translate("MainWindow", "File", nullptr));
         menuAbout->setTitle(QCoreApplication::translate("MainWindow", "About", nullptr));
     } // retranslateUi
