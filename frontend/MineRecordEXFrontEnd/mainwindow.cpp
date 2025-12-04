@@ -501,11 +501,46 @@ void MainWindow::on_actionStop_Recording_triggered()
     // Find the currently selected row in the table
     int currentRow = executableTable->currentRow();
     if (currentRow < 0) {
-        QMessageBox::information(this, "No Game Selected", "Please select a game from the list to stop recording.");
+        QMessageBox::warning(this, "No Game Selected", "Please select a game from the list to stop recording.");
         return;
     }
 
-    // Call the existing stopRecording() function
-    stopRecording();
+    // Get the path from the selected row to find the ProgramInfo object
+    QTableWidgetItem *pathItem = executableTable->item(currentRow, 0);
+    if (!pathItem) return;
+
+    QString path = pathItem->data(Qt::UserRole).toString();
+    ProgramInfo *program = programs.value(path, nullptr);
+    if (!program) return;
+
+    // Check if the selected program is actually recording
+    if (!program->isRecording()) {
+        QMessageBox::information(this, "Not Recording", "The selected game is not currently recording.");
+        return;
+    }
+
+    // Use the recording ID from the ProgramInfo object
+    QString recordingId = program->recordingId();
+
+    QString result = stopPythonRecording(recordingId);
+
+    if (result.startsWith("Error:")) {
+        QMessageBox::warning(this, "Recording Failed", result);
+        return;
+    }
+
+    // Update the program's state
+    program->setRecording(false);
+    QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
+    if (recordingItem) {
+        recordingItem->setText("No");
+        recordingItem->setBackground(QBrush());
+    }
+
+    // Clear the global active ID
+    activeRecordingId.clear();
+
+    QMessageBox::information(this, "Recording Stopped", "Recording stopped for " + program->name());
+    saveProgramData();
 }
 

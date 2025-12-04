@@ -26,12 +26,15 @@ public:
 
     bool isRecording() const;
     void setRecording(bool recording);
+    QString recordingId() const;
+    void setRecordingId(const QString &id);
 
 private:
     QString m_name;
     QString m_path;
     bool m_running;
     bool m_recording;
+    QString m_recordingId;
     qint64 m_timePlayedInSeconds; // Total time played in seconds
     QDateTime m_lastStartTime;   // When the program was last started
     QDateTime m_recordingStartTime; // When recording was started

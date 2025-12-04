@@ -112,3 +112,13 @@ void ProgramInfo::setRecording(bool recording)
         }
     }
 }
+
+QString ProgramInfo::recordingId() const
+{
+    return m_recordingId;
+}
+
+void ProgramInfo::setRecordingId(const QString &id)
+{
+    m_recordingId = id;
+}
