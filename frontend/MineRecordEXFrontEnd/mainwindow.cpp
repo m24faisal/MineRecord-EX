@@ -208,6 +208,7 @@ void MainWindow::startRecording()
     }
 
     program->setRecording(true);
+    program->setRecordingId(result);
     activeRecordingId = result;
     QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
     if (recordingItem) {
