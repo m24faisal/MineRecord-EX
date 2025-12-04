@@ -30,8 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //connect(ui->actionStart_Recording, &QAction::triggered, this, &MainWindow::startRecording);
-    //connect(ui->actionStop_Recording, &QAction::triggered, this, &MainWindow::stopRecording);
+    connect(ui->actionStart_Recording, &QAction::triggered, this, &MainWindow::startRecording);
+    connect(ui->actionStop_Recording, &QAction::triggered, this, &MainWindow::stopRecording);
 
     // Load settings before setting up UI
     loadSettings();
@@ -482,7 +482,7 @@ void MainWindow::applySettings() {
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
 
-/*void MainWindow::on_actionStart_Recording_triggered()
+void MainWindow::on_actionStart_Recording_triggered()
 {
     // Find the currently selected row in the table
     int currentRow = executableTable->currentRow();
@@ -507,5 +507,5 @@ void MainWindow::on_actionStop_Recording_triggered()
 
     // Call the existing stopRecording() function
     stopRecording();
-}*/
+}
 
