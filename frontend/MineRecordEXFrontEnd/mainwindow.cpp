@@ -89,8 +89,14 @@ void MainWindow::shutdownPythonBackend()
     qDebug() << "C++ SHUTDOWN: Shutting down Python backend...";
     if (backend_module) {
         try {
-            backend_module.attr("shutdown_all")();
-            qDebug() << "C++ SHUTDOWN: Successfully called Python shutdown_all function.";
+            // Before calling shutdown, check if we have an active recording ID
+            // This prevents a redundant stop call if the user already stopped it.
+            if (activeRecordingId.isEmpty()) {
+                qDebug() << "C++ SHUTDOWN: No active recording ID found. Calling Python shutdown_all() to clean up any remaining state.";
+                backend_module.attr("shutdown_all")();
+            } else {
+                qDebug() << "C++ SHUTDOWN: Active recording ID found. Assuming user stopped it. Not calling Python shutdown_all() to prevent an error.";
+            }
         } catch (const py::error_already_set &e) {
             qWarning() << "C++ SHUTDOWN: Error during Python shutdown:" << e.what();
         }
