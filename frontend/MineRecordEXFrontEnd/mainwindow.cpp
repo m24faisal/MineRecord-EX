@@ -544,6 +544,10 @@ void MainWindow::on_actionStop_Recording_triggered()
 
     QString result = stopPythonRecording(recordingId);
 
+    // --- ADD THIS DEBUG LINE ---
+    qDebug() << "C++ Stop Action: Raw result from Python is:" << result;
+    // --- END DEBUG ---
+
     if (result.startsWith("Error:")) {
         QMessageBox::warning(this, "Recording Failed", result);
         return;
