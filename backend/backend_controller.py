@@ -68,6 +68,7 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             "enable_data_collection": enable_data_collection
         }
         
+        
         # Start data collection in a separate thread if enabled
         if enable_data_collection:
             data_thread = threading.Thread(target=start_data_collection, args=(recording_id,))
@@ -75,14 +76,22 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             data_thread.start()
             active_recordings[recording_id]["data_thread"] = data_thread
         
+        # --- DEBUG: Print the state of the dictionary ---
+        print(f"PYTHON: After starting, active_recordings contains: {list(active_recordings.keys())}")
+        
         return recording_id
     except Exception as e:
         return f"Error: Failed to start recording: {str(e)}"
         
 def stop_recording(recording_id):
     """Stop recording game data and screen. Called from C++."""
+     # --- DEBUG: Print the state of the dictionary BEFORE checking ---
+    print(f"PYTHON: stop_recording called with ID: {recording_id}")
+    print(f"PYTHON: Before checking, active_recordings contains: {list(active_recordings.keys())}")
+
     try:
         if recording_id not in active_recordings:
+            print(f"PYTHON: ERROR: Recording ID '{recording_id}' not found in dictionary!")
             return "Error: Recording not found"
             
         recording = active_recordings[recording_id]
