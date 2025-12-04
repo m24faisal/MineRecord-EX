@@ -86,16 +86,24 @@ def stop_recording(recording_id):
             return "Error: Recording not found"
             
         recording = active_recordings[recording_id]
+
+        # --- THIS IS THE FIX ---
+        # If the recording is already marked as stopped, just return success.
+        # This prevents errors if the function is called multiple times.
+        if recording.get("status") == "stopped":
+            print(f"Python: Recording {recording_id} is already stopped. Ignoring redundant stop request.")
+            return f"Recording stopped for {recording['game_name']}"
+
+        # --- Original logic to terminate the process ---
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # --- Gracefully stop the screen recording by sending 'q' ---
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
-            print(f"Stopping screen recording for {recording['game_name']}...")
+            print(f"Python: Stopping screen recording for {recording['game_name']}...")
             # Send 'q' followed by a newline to the process's stdin
             screen_process.communicate(input='q\n'.encode())
-            print("Sent 'q' command to FFmpeg. It should exit gracefully.")
+            print("Python: Screen recording process stopped gracefully.")
         
         return f"Recording stopped for {recording['game_name']}"
     except Exception as e:
