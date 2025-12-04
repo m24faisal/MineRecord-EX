@@ -21,6 +21,7 @@
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -513,14 +514,26 @@ void MainWindow::on_actionStop_Recording_triggered()
     ProgramInfo *program = programs.value(path, nullptr);
     if (!program) return;
 
+    // --- DEBUG: Print the state of the selected program ---
+    qDebug() << "Stop Recording: Program Name:" << program->name();
+    qDebug() << "Stop Recording: Is program marked as recording?" << program->isRecording();
+    QString recordingId = program->recordingId();
+    qDebug() << "Stop Recording: Recording ID retrieved from ProgramInfo:" << recordingId;
+    // --- END DEBUG:
+
     // Check if the selected program is actually recording
     if (!program->isRecording()) {
         QMessageBox::information(this, "Not Recording", "The selected game is not currently recording.");
         return;
     }
 
-    // Use the recording ID from the ProgramInfo object
-    QString recordingId = program->recordingId();
+    if (recordingId.isEmpty()) {
+        QMessageBox::warning(this, "Recording ID Error", "The recording ID for this game is empty. Cannot stop recording.");
+        return;
+    }
+    // --- DEBUG: Print the ID being sent to Python ---
+    qDebug() << "Stop Recording: Sending ID to Python:" << recordingId;
+    // --- END DEBUG ---
 
     QString result = stopPythonRecording(recordingId);
 
@@ -543,4 +556,3 @@ void MainWindow::on_actionStop_Recording_triggered()
     QMessageBox::information(this, "Recording Stopped", "Recording stopped for " + program->name());
     saveProgramData();
 }
-
