@@ -19,6 +19,27 @@ from screenRecord import start_ffmpeg_process
 # Global dictionary to track active recordings
 active_recordings = {}
 
+def export_player_data(player_name, export_path):
+    """Exports all data for a given player from the database to a CSV file."""
+    try:
+        # Import the new export script
+        from db_export import export_player_data_to_csv
+        
+        # Ensure the export directory exists
+        os.makedirs(export_path, exist_ok=True)
+        
+        # Call the export function
+        result_path = export_player_data_to_csv(player_name, export_path)
+        
+        if result_path:
+            return f"Successfully exported data for {player_name} to {result_path}"
+        else:
+            return f"Failed to export data for {player_name}. No data was found."
+            
+    except Exception as e:
+        return f"Error during export: {str(e)}"
+
+
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
     print("!!! SHUTDOWN: Shutdown signal received. Stopping all active recordings...")

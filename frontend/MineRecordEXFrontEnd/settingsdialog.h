@@ -16,14 +16,15 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSettings>
-#include <QCheckBox>  // Add this include
+#include <QCheckBox>
+#include <functional>
 
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
+    explicit SettingsDialog(QWidget *parent = nullptr, std::function<QString(const QString&, const QString&)> exportFunc = nullptr);
     ~SettingsDialog();
 
 private slots:
@@ -34,6 +35,7 @@ private slots:
     void onBrowseRecordingPath();
     void onBrowseExportPath();
     void onThemeChanged(const QString &theme);
+    void onExportDataClicked();
 
 private:
     void setupUI();
@@ -65,6 +67,7 @@ private:
     QPushButton *recordingBrowseButton;
     QLineEdit *exportPathEdit;
     QPushButton *exportBrowseButton;
+    QPushButton *exportDataButton; // <--- I ADDED THIS MISSING LINE
 
     // New checkbox for data collection
     QCheckBox *enableDataCollectionCheckBox;
@@ -73,7 +76,10 @@ private:
     QString currentTheme;
     QString recordingPath;
     QString exportPath;
-    bool enableDataCollection;  // New setting value
+    bool enableDataCollection;
+
+    // Store the function passed from MainWindow
+    std::function<QString(const QString&, const QString&)> m_exportDataFunction;
 };
 
 #endif // SETTINGSDIALOG_H

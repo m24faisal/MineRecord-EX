@@ -2,13 +2,23 @@
 #include <QApplication>
 #include <QStyleFactory>
 #include <QDir>
+#include <QGroupBox>
+#include <QFormLayout>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QSettings>
+#include <QCheckBox>
+#include <QPushButton>
+#include <QInputDialog>
 
-SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
+SettingsDialog::SettingsDialog(QWidget *parent, std::function<QString(const QString&, const QString&)> exportFunc)
+    : QDialog(parent),
+    m_exportDataFunction(exportFunc)
 {
     setupUI();
     loadSettings();
     setWindowTitle("Settings");
-    setFixedSize(600, 450);  // Increased height to accommodate new checkbox
+    setFixedSize(600, 450);
     setModal(true);
 }
 
@@ -67,6 +77,7 @@ void SettingsDialog::setupUI()
     connect(recordingBrowseButton, SIGNAL(clicked()), this, SLOT(onBrowseRecordingPath()));
     connect(exportBrowseButton, SIGNAL(clicked()), this, SLOT(onBrowseExportPath()));
     connect(themeComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(onThemeChanged(QString)));
+    connect(exportDataButton, SIGNAL(clicked()), this, SLOT(onExportDataClicked()));
 }
 
 void SettingsDialog::setupGeneralSettings()
@@ -140,9 +151,15 @@ void SettingsDialog::setupPathSettings()
 
     dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
 
+    // Create Data Export
+    exportDataButton = new QPushButton("Export Data", this);
+    exportDataButton->setObjectName("exportDataButton");
+    exportDataButton->setToolTip("Exports all collected player data to a CSV file.");
+
     layout->addWidget(recordingGroup);
     layout->addWidget(exportGroup);
     layout->addWidget(dataCollectionGroup);  // Add the new group
+    layout->addWidget(exportDataButton);
     layout->addStretch();
 }
 
@@ -271,4 +288,27 @@ void SettingsDialog::onThemeChanged(const QString &theme)
 {
     // This is just for preview, actual theme change happens on apply
     currentTheme = theme;
+}
+
+void SettingsDialog::onExportDataClicked()
+{
+    // For now, let's just export data for the first player in the list.
+    // In a real app, you'd have a selection dropdown.
+    bool ok;
+    QString playerName = QInputDialog::getText(this, "Export Data",
+                                               "Enter the exact player name to export:",
+                                               QLineEdit::Normal,
+                                               "", &ok);
+    if (!ok || playerName.isEmpty()) {
+        QMessageBox::information(this, "Export Canceled", "No player name entered.");
+        return;
+    }
+
+    // Call the function that was passed from MainWindow
+    if (m_exportDataFunction) {
+        QString result = m_exportDataFunction(playerName, exportPath);
+        QMessageBox::information(this, "Export Complete", result);
+    } else {
+        QMessageBox::critical(this, "Error", "The export function is not available.");
+    }
 }

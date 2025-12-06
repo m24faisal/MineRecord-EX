@@ -2784,7 +2784,9 @@ release/settingsdialog.o: ../settingsdialog.cpp ../settingsdialog.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QStyleFactory \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qstylefactory.h \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/QDir
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QDir \
+		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QInputDialog \
+		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qinputdialog.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\settingsdialog.o ..\settingsdialog.cpp
 
 release/qrc_resources.o: release/qrc_resources.cpp 
