@@ -1,3 +1,4 @@
+// settingsdialog.h
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 
@@ -67,7 +68,7 @@ private:
     QPushButton *recordingBrowseButton;
     QLineEdit *exportPathEdit;
     QPushButton *exportBrowseButton;
-    QPushButton *exportDataButton; // <--- I ADDED THIS MISSING LINE
+    QPushButton *exportDataButton;
 
     // New checkbox for data collection
     QCheckBox *enableDataCollectionCheckBox;

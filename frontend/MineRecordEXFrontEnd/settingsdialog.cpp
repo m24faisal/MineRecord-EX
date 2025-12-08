@@ -1,3 +1,4 @@
+// settingsdialog.cpp
 #include "settingsdialog.h"
 #include <QApplication>
 #include <QStyleFactory>
@@ -151,14 +152,14 @@ void SettingsDialog::setupPathSettings()
 
     dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
 
-    // Create Data Export
+    // Create Data Export button
     exportDataButton = new QPushButton("Export Data", this);
     exportDataButton->setObjectName("exportDataButton");
     exportDataButton->setToolTip("Exports all collected player data to a CSV file.");
 
     layout->addWidget(recordingGroup);
     layout->addWidget(exportGroup);
-    layout->addWidget(dataCollectionGroup);  // Add the new group
+    layout->addWidget(dataCollectionGroup);
     layout->addWidget(exportDataButton);
     layout->addStretch();
 }
@@ -209,11 +210,9 @@ void SettingsDialog::applySettings()
     if (currentTheme == "Dark") {
         QApplication::setStyle("Fusion");
         qApp->setPalette(QApplication::style()->standardPalette());
-        // Additional dark theme styling could be added here
     } else if (currentTheme == "Light") {
         QApplication::setStyle("Fusion");
         qApp->setPalette(QApplication::style()->standardPalette());
-        // Additional light theme styling could be added here
     } else {
         // Default theme
         QApplication::setStyle(QStyleFactory::create("windowsvista"));
@@ -306,8 +305,10 @@ void SettingsDialog::onExportDataClicked()
 
     // Call the function that was passed from MainWindow
     if (m_exportDataFunction) {
-        QString result = m_exportDataFunction(playerName, exportPath);
-        QMessageBox::information(this, "Export Complete", result);
+        // The lambda returns a std::string, so we convert it to QString for the message box
+        std::string result_std_str = m_exportDataFunction(playerName.toStdString(), exportPath.toStdString());
+        QString result_qstring = QString::fromStdString(result_std_str);
+        QMessageBox::information(this, "Export Complete", result_qstring);
     } else {
         QMessageBox::critical(this, "Error", "The export function is not available.");
     }
