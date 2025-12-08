@@ -9,7 +9,7 @@ def export_player_data_to_csv(player_name, output_path):
     """
     Queries the database for all data related to a player and writes it to a CSV file.
     """
-    print(f"Starting export for player: {player_name}")
+    print(f"[*] Starting export for player: {player_name}")
     
     # Construct the output filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -38,7 +38,7 @@ def export_player_data_to_csv(player_name, output_path):
         player_data = cursor.fetchall()
 
         if not player_data:
-            print(f"No data found for player: {player_name}")
+            print(f"[*] No data found for player: {player_name}")
             return None
 
         # --- Write to CSV ---
@@ -50,28 +50,23 @@ def export_player_data_to_csv(player_name, output_path):
             'plyrarmor', 'plyroffhand'
         ]
 
-        print(f"Writing data to CSV: {full_path}")
+        print(f"[*] Writing data to CSV: {full_path}")
         with open(full_path, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(headers)
             writer.writerows(player_data)
 
-        print(f"Successfully exported {len(player_data)} records for {player_name}.")
+        print(f"[*] Successfully exported {len(player_data)} records for {player_name}.")
         return full_path
 
     except psycopg2.Error as e:
-        print(f"Database error: {e}")
+        print(f"[*] Database error: {e}")
         return None
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"[*] An unexpected error occurred: {e}")
         return None
     finally:
         if 'conn' in locals() and conn is not None:
             cursor.close()
             conn.close()
-            print("Database connection closed.")
-
-if __name__ == "__main__":
-    # Example usage for testing
-    # This would be called from your C++ backend
-    export_player_data_to_csv("Playername", "C:/path/to/your/exports")
+            print("[*] Database connection closed.")

@@ -22,10 +22,10 @@ def start_ffmpeg_process(output_file, fps=30):
         output_file
     ]
     
-    print(f"Starting FFmpeg with command: {' '.join(ffmpeg_cmd)}")
+    print(f"[*] Starting FFmpeg with command: {' '.join(ffmpeg_cmd)}")
     
     try:
-        # Start the process. We MUST open stdin so we can send it the 'q' command later.
+        # Start the process. We must open stdin so we can send it 'q' later.
         process = subprocess.Popen(
             ffmpeg_cmd,
             stdin=subprocess.PIPE,         # CRITICAL: Open stdin for writing
@@ -54,10 +54,14 @@ if __name__ == "__main__":
     if process:
         print("Recording started. Press Ctrl+C to stop.")
         try:
-            # Just wait for the process to be interrupted
-            process.wait()
+            process.wait() # Wait for the process to be interrupted
         except KeyboardInterrupt:
             print("\nCtrl+C detected. Terminating FFmpeg process...")
-            # Send 'q' to stdin for a graceful exit
-            process.communicate(input='q\n'.encode())
-            print("FFmpeg process should have terminated gracefully.")
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+                print("FFmpeg terminated gracefully.")
+            except subprocess.TimeoutExpired:
+                print("FFmpeg did not terminate, killing it forcefully.")
+                process.kill()
+                print("FFmpeg killed.")
