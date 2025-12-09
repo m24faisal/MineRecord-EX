@@ -11,7 +11,6 @@ group = mod_group_id
 base {
     archivesName = mod_id
 }
-
 // Mojang ships Java 21 to end users in 1.20.5+, so your mod should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
@@ -161,6 +160,7 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    implementation 'com.rabbitmq:amqp-client:5.25.0'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
