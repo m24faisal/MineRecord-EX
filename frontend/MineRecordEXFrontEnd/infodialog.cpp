@@ -36,7 +36,7 @@ void InfoDialog::setupUI()
         "This software also allows the user to export their in-game stats to a viewable spreadsheet file for later reference. This program is "
         "categorized under Free Open-Sourced Software (FOSS)</p>"
         "<p><b>Authors: </b> Mahir Faisal and Raiyyan Siddiqui</p>"
-        "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal?tab=repositories>Github</a></p>"
+        "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal?tab=repositories   >Github</a></p>"
         );
 
     // Create OK button with fixed width

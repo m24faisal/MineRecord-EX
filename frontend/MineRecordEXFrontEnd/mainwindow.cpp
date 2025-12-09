@@ -17,83 +17,14 @@
 #include <QStyleFactory>
 #include <QDebug>
 #include <QMessageBox>
-#include <functional>
 
-// --- STEP 1: Include pybind11 FIRST ---
-#include <pybind11/embed.h>
-namespace py = pybind11;
+// --- FIX 1: Remove the entire duplicate class definition from this file ---
+// The class definition should ONLY be in mainwindow.h.
+// This file should only contain the implementations of the member functions.
 
-// --- STEP 2: Now include Qt headers ---
-#include <QMainWindow>
-#include <QTableWidget>
-#include <QFileInfo>
-#include <QTimer>
-#include <QMap>
-#include <QMenu>
-
-// Forward declarations
-class ProgramInfo;
-class InfoDialog;
-class SettingsDialog;
-
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
-
-class MainWindow : public QMainWindow
-{
-    Q_OBJECT
-
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
-
-protected:
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
-public slots:
-    void on_actionAdd_Game_triggered();
-    void on_actionExit_Application_triggered();
-    void on_actionGitHub_triggered();
-    void on_actionInfo_triggered();
-    void on_actionSettings_triggered();
-    void updateProgramStatus();
-    void showContextMenu(const QPoint &pos);
-    void removeGame();
-    void startRecording();
-    void stopRecording();
-
-private:
-    void setupUI();
-    void addExecutableToTable(const QFileInfo &fileInfo);
-    void saveProgramData();
-    void loadProgramData();
-    void applySettings();
-    void initializePythonBackend();
-    QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
-    QString stopPythonRecording(const QString &recordingId);
-    void shutdownPythonBackend();
-
-    // pybind11 specific
-    py::scoped_interpreter guard{};
-    py::module backend_module;
-
-    Ui::MainWindow *ui;
-    QTableWidget *executableTable;
-    QWidget *centralWidget;
-    QTimer *updateTimer;
-    QMap<QString, ProgramInfo*> programs;
-    QMenu *contextMenu;
-    QAction *removeAction;
-    QAction *startRecordingAction;
-    QAction *stopRecordingAction;
-    InfoDialog *infoDialog;
-    SettingsDialog *settingsDialog;
-    QString activeRecordingId;
-
-    // Settings
-    bool enableDataCollection;
-};
+// --- FIX 2: Remove unused include ---
+// The <functional> header was included but not used directly.
+// #include <functional>  <-- This line can be removed.
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -104,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     // Load settings before setting up UI
-    loadSettings();
+    loadSettings(); // This function is now declared in the header
 
     // Apply settings before setting up UI
     applySettings();
@@ -352,7 +283,7 @@ void MainWindow::on_actionExit_Application_triggered()
 { this->close(); }
 
 void MainWindow::on_actionGitHub_triggered()
-{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories")); }
+{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories ")); }
 
 void MainWindow::on_actionInfo_triggered()
 {
@@ -365,9 +296,20 @@ void MainWindow::on_actionInfo_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     if (!settingsDialog) {
-        // Pass a lambda function that calls the Python backend
+        // FIX 3: Correct the SettingsDialog constructor call.
+        // The constructor in settingsdialog.h is: SettingsDialog(QWidget *parent = nullptr, std::function<QString(const QString&, const QString&)> exportFunc = nullptr)
+        // We need to pass the parent (this) and a valid function.
         settingsDialog = new SettingsDialog(this, [this](const QString &playerName, const QString &exportPath) {
-            return backend_module.attr("export_player_data")(playerName.toStdString(), exportPath.toStdString()).cast<std::string>();
+            // This lambda correctly calls the Python backend and returns the result as a QString
+            if (!backend_module) {
+                return QString("Error: Python backend is not initialized.");
+            }
+            try {
+                py::object result = backend_module.attr("export_player_data")(playerName.toStdString(), exportPath.toStdString());
+                return QString::fromStdString(result.cast<std::string>());
+            } catch (const py::error_already_set &e) {
+                return QString("Python Error: %1").arg(e.what());
+            }
         });
     }
     settingsDialog->show();
@@ -543,6 +485,21 @@ void MainWindow::loadProgramData()
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
 
+void MainWindow::loadSettings()
+{
+    QSettings settings("YourCompany", "GameManager");
+
+    // Load theme
+    // Note: In your original code, this was loaded in applySettings. It's better to load all settings here.
+    // QString theme = settings.value("theme", "Default").toString();
+
+    // Load paths
+    // QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
+
+    // Load data collection setting
+    enableDataCollection = settings.value("enableDataCollection", false).toBool();
+}
+
 void MainWindow::applySettings()
 {
     QSettings settings("YourCompany", "GameManager");
@@ -557,6 +514,10 @@ void MainWindow::applySettings()
         QApplication::setStyle(QStyleFactory::create("windowsvista"));
     }
 
-    // Load data collection setting
-    enableDataCollection = settings.value("enableDataCollection", false).toBool();
+    // Create directories if they don't exist
+    QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
+    QDir dir;
+    if (!dir.exists(recordingPath)) {
+        dir.mkpath(recordingPath);
+    }
 }

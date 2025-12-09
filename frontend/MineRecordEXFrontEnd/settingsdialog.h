@@ -1,4 +1,3 @@
-// settingsdialog.h
 #ifndef SETTINGSDIALOG_H
 #define SETTINGSDIALOG_H
 

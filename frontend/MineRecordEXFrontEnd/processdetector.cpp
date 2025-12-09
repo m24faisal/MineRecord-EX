@@ -93,7 +93,7 @@ void ProcessDetector::updateCacheWindows()
         tasklist.waitForFinished(500);
 
         QString output = tasklist.readAllStandardOutput();
-        QStringList lines = output.split('\n');
+        const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
 
         // Skip the header line
         for (int i = 1; i < lines.size(); ++i) {
@@ -116,7 +116,7 @@ void ProcessDetector::updateCacheWindows()
         }
     } else {
         QString output = wmic.readAllStandardOutput();
-        QStringList lines = output.split('\n');
+        const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
 
         // Skip header lines
         for (int i = 2; i < lines.size(); ++i) {
@@ -147,7 +147,7 @@ void ProcessDetector::updateCacheLinux()
     ps.waitForFinished(500); // Wait max 500ms
 
     QString output = ps.readAllStandardOutput();
-    QStringList lines = output.split('\n');
+    const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
 
     for (const QString &line : lines) {
         QString processName = line.trimmed().toLower();
@@ -165,7 +165,7 @@ void ProcessDetector::updateCacheMac()
     ps.waitForFinished(500); // Wait max 500ms
 
     QString output = ps.readAllStandardOutput();
-    QStringList lines = output.split('\n');
+    const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
 
     for (const QString &line : lines) {
         QString processName = line.trimmed().toLower();

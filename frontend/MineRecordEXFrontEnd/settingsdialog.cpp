@@ -1,4 +1,3 @@
-// settingsdialog.cpp
 #include "settingsdialog.h"
 #include <QApplication>
 #include <QStyleFactory>
