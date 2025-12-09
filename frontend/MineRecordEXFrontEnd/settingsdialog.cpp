@@ -1,3 +1,4 @@
+// settingsdialog.cpp
 #include "settingsdialog.h"
 #include <QApplication>
 #include <QStyleFactory>
@@ -304,9 +305,9 @@ void SettingsDialog::onExportDataClicked()
 
     // Call the function that was passed from MainWindow
     if (m_exportDataFunction) {
-        // The lambda returns a std::string, so we convert it to QString for the message box
-        std::string result_std_str = m_exportDataFunction(playerName.toStdString(), exportPath.toStdString());
-        QString result_qstring = QString::fromStdString(result_std_str);
+        // FIX: Call the function with QString arguments, not std::string.
+        // The lambda in MainWindow handles the Python types and returns a QString.
+        QString result_qstring = m_exportDataFunction(playerName, exportPath);
         QMessageBox::information(this, "Export Complete", result_qstring);
     } else {
         QMessageBox::critical(this, "Error", "The export function is not available.");

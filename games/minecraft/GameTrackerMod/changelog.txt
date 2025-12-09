@@ -1,6 +1,287 @@
 1.21.x Changelog
+60.1
+====
+ - 60.1.5 Expose movevector field for usage with MovementInputUpdateEvent (#10732)
+ - 60.1.4 Mark applyServerBinpatches as a dependency of BundleList.
+          Fixes shim jar config
+ - 60.1.3 Split setup and publish commands in actions
+ - 60.1.2 Github Actions
+ - 60.1.1 Fix `BusGroup.DEFAULT` not being trimmed after mod loading completes, also trim mod BusGroups now too (#10721)
+          Saves some memory by trimming various backing collections of loaded EventBuses on the default BusGroup
+ - 60.1.0 1.21.10 RB
+
+60.0
+====
+ - 60.0.21 Add `c:nuggets/copper` item tag (#10716)
+ - 60.0.20 Fix ItemStack in RenderTooltipEvent always EMPTY, merges RenderTooltipEvent.Background into .Pre (#10655) (#10702)
+ - 60.0.19 Provide LevelRenderState during frame pass construction  Addresses #10867 (#10688)
+ - 60.0.18 Make Mixin dev mode check a little looser (#10713)
+ - 60.0.17 Expand hooks for custom shears (#10704)
+           Fix shearing leads with custom shears (interacting with entity & leash knot)
+           Fix shearing poppy from copper golem for custom shears
+ - 60.0.16 Introduce MixinExtras as an included, optional dependency (#10709)
+           Declare ME in userdev config as an effective compile transitive
+           Co-authored-by: LexManos <LexManos@gmail.com>
+ - 60.0.15 Add workaround for Mixin bug. Closes #10710
+ - 60.0.14 Fix ROIMFS not being on boot classloader for dedicated server.
+ - 60.0.13 Add support for Forge shipping with JarInJar options. (#10683)
+           These are optional libraries that are only loaded when requested by mods.
+           Includes new ReadOnlyInMemoryFileSystem to improve performance of JarInJar parsing.
+ - 60.0.12 Remove generic from AttachCapabilitiesEvent to help prevent modders from having unchecked casts. Closes #10707
+ - 60.0.11 Fix misaligned patch in DedicatedServer
+ - 60.0.10 Revert "Remove runtime mods.toml string substitution (#10698)" (#10701)
+           This reverts commit fc80e3028943237e60024d513f274a30c8457e71, 17ce723edf3f8e53c206db0c0d8838f041db5a04, and 0e6341a23eb206aa946fde648b6429d09e1c8481.
+ - 60.0.9  Add support for custom particle groups (#10692)
+ - 60.0.8  Fix Minecraft version being incorrectly included in Forge mods.toml (#10700)
+ - 60.0.7  Fix universal jar missing Forge version (#10699)
+ - 60.0.6  Remove runtime mods.toml string substitution (#10698)
+ - 60.0.5  Fix Manually created RegistryObjects not being populated. Closes #10686
+           This partially reverts commit 1268d4c3a8acd9f780d2048d5a527206707f8e35.
+           But makes the classes package private so nobody can access.
+ - 60.0.4  Simplify ModLoader#hasCompletedState, some more cleanup to FML internals
+ - 60.0.3  Skip processing vanilla classes in RuntimeDistCleaner when running on a client (#10682)
+ - 60.0.2  Require CapabilityToken subclasses to be anonymous (#10681)
+ - 60.0.1  Improve event javadocs based on community feedback, apply jSpecify to more events
+ - 60.0.0  1.21.10
+
+59.0
+====
+ - 59.0.5 Bump EventBus for more javadocs
+ - 59.0.4 Make `BuildCreativeModeTabContentsEvent` a record
+ - 59.0.3 Fix CustomizeGuiOverlayEvent mistakenly being a RecordEvent
+ - 59.0.2 Move more events away from the mod BusGroup (#10676)
+          Also adds more validation to strict mode. See the GitHub PR for further details.
+ - 59.0.1 Add the new vanilla info object to Keyboard and Mouse related events.
+ - 59.0.0 Minecraft 1.21.9 update.
+          There a lot of performance improvements related to events.
+            No more InheritableEvent for abstract events that you shouldn't add listeners to anyway, like EntityEvent. Use their sub-events.
+            Made a lot more events records and interfaces. Mostly just a binary break, but has better performance.
+            Mod bus posting methods are now static, no more ModLoader.get() for those.
+          ObjectHolder was removed, use RegistryObject.
+          Changed RuntimeEnumExtender to only target Minecraft classes. If you want other modders to interact with your API, use an Interface instead of Enum.
+          Moved some abstract event methods to only the relevant sub-events now, e.g. can no longer check the side of a ClientTickEvent, because it'll always be client
+          Rendering has changed a lot, they now batch most things together so that the game will render faster.
+          RenderHighlightEvent changed a lot
+          See https://github.com/MinecraftForge/MinecraftForge-Experimental/tree/1.21.9-dev for unsquashed commits.
+          Co-authored-by: Paint_Ninja <PaintNinja@users.noreply.github.com>
+
+58.1
+====
+ - 58.1.6 Fix Crafters not inserting into IItemHandlers. Closes #10667
+ - 58.1.5 Optimize ConcatenatedListView's Iterator and fix hidden CreativeTabs taking up page space.
+ - 58.1.4 [1.21.8] Deprecate global `IExtensibleEnum` support (#10662)
+          This is intended for use with Minecraft classes only. Mod devs can support extending enums through other, more efficient means, such as converting their enum to a record and having static final fields of instances that correspond to each enum value.
+ - 58.1.3 Fix alpha channel of creative mode tab title color (#10661)
+ - 58.1.2 Deprecate JS CoreMods, remove Forge's usages of them (#10659)
+ - 58.1.1 Replace Blocks.FARMLAND checks with instanceof FarmBlock (#10647)
+ - 58.1.0 1.21.8 RB 1
+
+58.0
+====
+ - 58.0.10 Add event for adding framepasses (#10612)
+ - 58.0.9  Add ForgeLayeredDraw & AddGuiOverlayLayersEvent as API for gui overlay management. (#10579) (#10611)
+ - 58.0.8  Fix Inactivated activator rails, acting like inactivated powered rails. Closes #10643
+ - 58.0.7  Fix Redstone power propagating between powered and activator rails. Fixed #10642
+ - 58.0.6  Optimize VillagerTradingManager, avoid redundant work. Closes #10577
+ - 58.0.5  Minor cleanup to FML, fix double parsing of mods.toml (#10597)
+ - 58.0.4  Update GradleUtils to 2.6.4 (#10600)
+ - 58.0.3  Sync deps with MC (#10596)
+ - 58.0.2  Allow command suggestions/autocomplete to search all modded paths at once without namespace provided (#10593)
+ - 58.0.1  Optimise WorldWorkerManager (#10578)
+ - 58.0.0  1.21.8 - Intel Graphic Fixes
+
+57.0
+====
+ - 57.0.3 Fix crash when clicking links in modlist without being in-world.
+ - 57.0.2 Use vanilla's entrypoint for GameTest servers
+ - 57.0.1 Fix Forge error screen not rendering text correctly. Closes #10569
+ - 57.0.0 Minecraft 1.21.7 - Lava Chickens!
+
+56.0
+====
+ - 56.0.9 Bump ASM and EventBus
+          Improves support for Java 25 and better stability of the compile-time EventBus checks, respectively.
+          Co-Authored-By: LexManos <LexManos@gmail.com>
+ - 56.0.8 Add WanderTradesEvent#Pool Constructor with List<ItemListing> and int directly (#10566)
+ - 56.0.7 Fix client commands not working when using clickable commands.
+ - 56.0.6 Add Event for Picture in Picture renderers registration.
+ - 56.0.5 Make more events records
+ - 56.0.4 Fix posting cancellable child events with non-cancellable inheritable parents
+          Also made more events SelfDestructing to save a tad more memory
+ - 56.0.3 Fix wrong order in filter vanilla commands patch. Fixes #10563
+ - 56.0.2 Fix not being able to break blocks in survival. Closes #10561
+ - 56.0.1 Fix bug with strict bulk registration
+          See EventBus#89 for more details
+ - 56.0.0 1.21.6 - New EventBus 7
+          A full rewrite and redesign of the library that offers much better performance, new features and fixes all previous design flaws
+          See the migration guide here: https://gist.github.com/PaintNinja/ad82c224aecee25efac1ea3e2cf19b91
+          Co-authored-by: Paint_Ninja <PaintNinja@users.noreply.github.com>
+
+55.0
+====
+ - 55.0.23 Update MDK to fix OOM error and aid getting Mixin setup (#10559)
+ - 55.0.22 Remove legacy patch that caused tripwires to create a loop. Fixes #10558
+ - 55.0.21 Fix warped and crimson fungi not being able to be placed on nylium. (#10544)
+           Fix other PlantType parity issues, add test for all vanilla PlantType blocks.
+           Co-authored-by: LexManos <LexManos@gmail.com>
+ - 55.0.20 Fix modded keybidings being reset to default when reloading. Fixes: #10531
+ - 55.0.19 Deprecate GatherDataEvent.validate() as validation always happens. And made ExistingFileHelper always function. Closes #10516
+ - 55.0.18 Call getToolModifiedState for AXE_STRIP and AXE_WAX_OFF.
+ - 55.0.17 Fix Wood Stripping sound not playing. Fixes #10525
+ - 55.0.16 Fix dedicated server not loading default language files. Fixes #10555
+ - 55.0.15 Make Loot Function without builders Constructors public (#10521)
+ - 55.0.14 Ensure changes from keyboard in ForgeSlider behave as changes from mouse (#10554)
+ - 55.0.13 Add YourKit mention
+ - 55.0.12 Fix creative inventory not displaying item categories correctly. Fixes #10524
+ - 55.0.11 Make unbound tags non-fatal due to Mojang's registry loading order issues. Closes #10524
+ - 55.0.10 Fix PlayerEquipmentInvWrapper offset. Closes #10532
+ - 55.0.9  Deprecate `DistExecutor` for removal (#10198)
+ - 55.0.8  Cleanup early display's internals a bit more (#10538)
+ - 55.0.7  Add ChunkEvent.LightingCalculated, fixes #8354 (#10533)
+ - 55.0.6  Seal most event hierarchies (#10515)
+           Most events in Forge are not designed to be extended by mod devs but technically allowed it before this PR, leading to a risk of unintentional breaking changes for those that do.
+           If you need to extend a Forge event, please let us know so that we can explicitly support that and design it with extending in mind. Note that this change does not affect making your own events that directly extend from EventBus' `Event` class.
+ - 55.0.5  Fix NPE when breeze deflects a projectile (#10535)
+ - 55.0.4  Fix Swords and Pickaxes not using ToolActions (#10520)
+ - 55.0.3  Fix bundles causing crash upon inserting item. Closes #10509
+ - 55.0.2  Add DeferredRegistryData to help with generating data driven registry entries.
+           Revive GameTest system and make all but one Forge Test mod pass.
+ - 55.0.1  Fix Mod List Screen's render layout and scroll bars.
+ - 55.0.0  Minecraft 1.21.5
+           Co-authored-by: Ven <tudurap.com@gmail.com>
+           Co-authored-by: Jonathing <me@jonathing.me>
+
+54.1
+====
+ - 54.1.3 Add Pumpkin Block and Item Tags (#10482)
+ - 54.1.2 Add '#forge:chorus_additionally_grows_on' tag for similar mechanics to '#minecraft:azalea_grows_on' but for chorus (#10459)
+ - 54.1.1 Fix Hanging Pale Moss not dropping with modded shears (#10414)
+ - 54.1.0 1.21.4 RB 1
+          https://forums.minecraftforge.net/topic/154394-forge-541-minecraft-1214/
+
+54.0
+====
+ - 54.0.38 Fix corrupted and invalidly symlinked worlds crashing on level select (#10406)
+ - 54.0.37 Add fast graphics render type to block model jsons (#10394)
+           Make modded leaves behave like vanilla leaves by default (Fixes #10389)
+ - 54.0.36 Add updated tag context to AddReloadListenerEvent (#10412)
+           Fixes using custom tags in GlobalLootModifiers.
+ - 54.0.35 Give ItemStack context to IForgeItem.getCapabilityProvider (#10404)
+ - 54.0.34 Re-introduce ItemStack Capabilities (#10324)
+ - 54.0.33 Fix redstone updates for comparators going up/down incorrectly. Related: #9973
+ - 54.0.32 Fix forced chunks never being ticked by the server (#10325)
+ - 54.0.31 Fix redstone update order not matching vanilla. (#10392)
+ - 54.0.30 Fix game test structure rotations being inconsistant (#10391)
+ - 54.0.29 Re-introduce IForgeItem.damageItem when an item takes damage, Fixes #10344 (#10371)
+ - 54.0.28 Gate client test mods behind clientSideOnly (#10390)
+ - 54.0.27 Fix issue with superclass event listeners by updating EventBus (#10384)
+ - 54.0.26 Bump dependencies, most notably EventBus (#10370)
+           - CoreMods 5.2.4 -> 5.2.6
+           - EventBus 6.2.15 -> 6.2.26
+               - Reduced memory usage
+               - Further performance improvements
+               - Fixed EventBus#39, unregistered listeners are now immediately reclaimable by the GC
+           - Apache MavenArtifact 3.8.5 -> 3.8.8
+           - NightConfig 3.7.3 -> 3.7.4
+ - 54.0.25 Fix shield disabling being completely ignored (#10316)
+ - 54.0.24 Update Gradle to 8.12.1
+ - 54.0.23 Fix JOpt Simple by updating ModLauncher (#10347)
+ - 54.0.22 GameTestHelper additions (#10338)
+           Co-authored-by: LexManos <LexManos@gmail.com>
+ - 54.0.21 Add `c:flowers`, `c:flowers/tall`, and `c:flowers/small` block and item tags (#10335)
+           Co-authored-by: TelepathicGrunt <40846040+telepathicgrunt@users.noreply.github.com>
+ - 54.0.20 Fix JOpt Simple needing a strict version requirement declaration (#10311)
+ - 54.0.19 Fix incorrect method reference in TntBlock.explode() (#10326)
+ - 54.0.18 Fix issues in VillagerTrades.EmeraldsForVillagerTypeItem related to custom Villager Types (#10298)
+           Add VillagerType#registerBiomeType
+ - 54.0.17 Fix render_type in block models not being used. Fixes #10294
+ - 54.0.16 Bump dependencies (#10274)
+           - EventBus 6.2.8 -> 6.2.15
+           - Bootstrap 2.1.7 -> 2.1.8
+           - SecureModules 2.2.20 -> 2.2.21
+           - AccessTransformers 8.2.0 -> 8.2.1
+           - ModLauncher 10.2.2 -> 10.2.3
+           These bumps include further clean-up and optimisations.
+ - 54.0.15 Simplify Title Screen Brandings (#10287)
+ - 54.0.14 Clean and fix Forge's internal coremods, fixes finalizeSpawn hook. (#10271)
+ - 54.0.13 Update jline for better darwin/arm64 support Fixes #10107 (#10279)
+ - 54.0.12 Bump CoreMods to 5.2.4 (#10262)
+ - 54.0.11 Allow mipmap lowering to be disabled (#10242)
+ - 54.0.10 Manage FileWatcher instance per ConfigFileTypeHandler (#10213)
+ - 54.0.9  Skip processing Forge classes in `RuntimeDistCleaner` (#10199)
+           Mod classes are still transformed as usual
+ - 54.0.8  Skip Forge classes in the RuntimeEnumExtender transformer (#10197)
+           Mod classes are still transformed as usual
+ - 54.0.7  Add hooks for using Vanilla's new Client data generator (#10206)
+           Add new hook for custom block models that do not have real blocks backing them
+           Some workspace cleanup fixing log4j annotation processor
+ - 54.0.6  Deprecate `@ObjectHolder`, add a couple of fast-paths (#10195)
+ - 54.0.5  Bump Bootstrap which has a slight performance boost during dev time.
+ - 54.0.4  Speed up mod annotation scanning by ~30%
+ - 54.0.3  Skip Vanilla classes for the CapabilityTokenSubclass transformer (#10196)
+ - 54.0.2  Simplify memory usage display on loading screen (#10193)
+           Co-authored-by: TelepathicGrunt <40846040+telepathicgrunt@users.noreply.github.com>
+ - 54.0.1  Fix custom particles causing crash
+ - 54.0.0  Minecraft 1.21.4
+
+53.0
+====
+ - 53.0.25 Remove debug code. Closes #10182
+ - 53.0.24 Pass the Holder<Enchantment> to Item.canApplyAtEnchantingTable. Closes #10181
+ - 53.0.23 Fix incorrect patch
+ - 53.0.22 Change vanilla registry order to last-seen. Closes #10179
+ - 53.0.21 Call IUnbakedGeometry.bake from BlockModel Closes #10178
+ - 53.0.20 Cleanup some warnings
+ - 53.0.19 Fix not being able to swim in lava
+ - 53.0.18 Move mdk back to com/example/examplemod to align with what people expect.
+ - 53.0.17 Move MDK example to test sourceset and fix Item/Block registration example. Closes #10139
+ - 53.0.16 Added support for using optional tags on Forge registries
+           Add DeferredRegister.key(name) helper function to make ResourceKey creation easier
+           Fix TagManager not binding tags
+           Fix Unbound Tag Exception when modders register tags during Register events Closes #10154
+ - 53.0.15 Fix empty tag conditional recipe test
+ - 53.0.14 Fixed missed call to getFriction hook in AbstractBoat
+ - 53.0.13 Pass player argument when firing `OnDatapackSyncEvent` (#10170)
+ - 53.0.12 Cleanup lifecycle transitions
+           Fix mod ordering for multi-mod jars
+           Make dependency resolution issues easier to debug/diagnose
+ - 53.0.11 Bump CoreMods to 5.2 (#10156)
+           Full Changelog:
+           https://gist.github.com/Jonathing/c3ad28b2a048ac839a7baba5417ee870
+           The key features are:
+           - ES6 language support
+           - Thoroughly updated ASMAPI, with full documentation
+           - Bug fixes (some optional for backwards-compatibility)
+           - Partial internal code cleanup
+ - 53.0.10 Fix PlayerRenderer#render invoking RenderLivingEvent and not RenderPlayerEvent (#10167)
+ - 53.0.9  Fix Powered Rails acting like Activator Rails due to misaligned patch
+ - 53.0.8  Properly allow normal mods.toml mods to specify the module names and use a full module-info.
+           Make FMLModContainer read and apply Add-Opens and Add-Exports manifest entries from mod files.
+           Forge is now the `net.minecraftforge.forge` module instead of `forge`
+           https://forums.minecraftforge.net/topic/153333-proper-java-module-support-in-forge-mods/
+ - 53.0.7  Fix LootTableLoadEvent not being fired. Closes #10144
+ - 53.0.6  Fix items with use durations of 0 being repeatedly used when use button is held down. Fixed #10150
+ - 53.0.5  Add AT for BlockEntityType constructor. (#10149)
+ - 53.0.4  Add `c:stripped_logs` and `c:stripped_woods` tags (#10146)
+ - 53.0.3  Bump CoreMods and ASM (#10145)
+           CoreMods 5.1.13 changelog: https://gist.github.com/Jonathing/905d142447ecef670526ae27243adbba
+ - 53.0.2  Remove redundant rendering options (#10140)
+ - 53.0.1  Fix pause menu having a black background, reverts PR #10115
+ - 53.0.0  1.21.3 update
+
 52.0
 ====
+ - 52.0.22 Add `c:foods/pie` tag (#10135)
+           Replaces `forge:foods/pie`, which is now deprecated.
+ - 52.0.21 Fix back-compat with legacy `forge:` tags (#10126)
+ - 52.0.20 Implement the de-facto common tags, add many new Forge tags (#9955)
+           https://forums.minecraftforge.net/topic/152815-common-tags-in-forge/
+ - 52.0.19 Patch BlockEntity.java to use getType Method (#10124)
+ - 52.0.18 Fix and cleanup RuntimeDistCleaner
+ - 52.0.17 Sync component registry ids
+           Fix deprecation typo
+           Bump ModLauncher (better stack traces)
+           Set Automatic-Module-Name
  - 52.0.16 Fix layering of translucent sprites being broken by re-adding blur call Mojang removed (#10115)
  - 52.0.15 Cleanup length and size checks (#10108)
  - 52.0.14 Update vulnerable `eclipse` dependency (#10109)
