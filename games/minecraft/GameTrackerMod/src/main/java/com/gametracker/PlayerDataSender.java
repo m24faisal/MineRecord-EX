@@ -1,11 +1,10 @@
 package com.gametracker; // <-- IMPORTANT: Change this to your package
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.Boat;
@@ -27,7 +26,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * This class is responsible for sending detailed player data from the Minecraft client
@@ -71,11 +69,9 @@ public class PlayerDataSender {
                 String playerName = player.getName().getString();
 
                 // 2. FPS (Frames Per Second)
-                // This is a client-side metric from the Minecraft game instance.
                 int fps = mc.getFps();
 
                 // 3. Date and Time
-                // Using Java's modern time API for a clean timestamp.
                 String dateTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
                 // 4. Health and Hunger
@@ -87,34 +83,32 @@ public class PlayerDataSender {
                 double x = player.getX();
                 double y = player.getY();
                 double z = player.getZ();
-                // Momentum is the current velocity vector.
                 String momentum = String.format("%.2f,%.2f,%.2f", player.getDeltaMovement().x, player.getDeltaMovement().y, player.getDeltaMovement().z);
 
                 // 6. Player Facing Direction
-                // This gets the cardinal direction the player is looking at.
                 Direction facing = player.getDirection();
                 String facingName = facing.getName();
 
                 // 7. View and Selected Item/Slot
-                // Yaw (horizontal rotation) and Pitch (vertical rotation)
                 float yaw = mc.player != null ? mc.player.getYRot() : 0;
                 float pitch = mc.player != null ? mc.player.getXRot() : 0;
 
-                // The inventory slot the player has currently selected (0-8).
-                int selectedSlot = player.getInventory().selected;
-                // The ItemStack in the selected hotbar slot.
+                // FIX 1: Use the public getSelected() method instead of accessing the private 'selected' field.
+                int selectedSlot = player.getInventory().getSelectedSlot();
                 ItemStack selectedItem = player.getInventory().getItem(selectedSlot);
-                String selectedItemName = selectedItem.getItem().getDescription().getString();
+
+                // FIX 2 & 3: Use getDisplayName().getString() on the ItemStack to get the item's name.
+                Component selectedNameComponent = selectedItem.getDisplayName();
+                String selectedItemName = selectedNameComponent.getString();
                 int selectedItemCount = selectedItem.getCount();
 
                 // 8. Player Inventory
-                // We serialize the entire main inventory (36 slots) into a JSON array.
                 List<String> inventoryJson = new ArrayList<>();
                 for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                     ItemStack stack = player.getInventory().getItem(i);
                     if (!stack.isEmpty()) {
-                        // Format: "slot_id:item_name:count"
-                        inventoryJson.add(String.format("%d:%s:%d", i, stack.getItem().getDescription().getString(), stack.getCount()));
+                        // FIX 3 (again): Use getDisplayName().getString() here as well.
+                        inventoryJson.add(String.format("%d:%s:%d", i, stack.getDisplayName().getString(), stack.getCount()));
                     }
                 }
                 String inventoryString = String.join(",", inventoryJson);
@@ -126,7 +120,8 @@ public class PlayerDataSender {
                 if (isRiding) {
                     Entity vehicle = player.getVehicle();
                     if (vehicle != null) {
-                        rideVehicleType = vehicle.getType().getDescription().getString();
+                        // FIX 3 (again): Use getDisplayName().getString() for the vehicle name.
+                        rideVehicleType = vehicle.getDisplayName().getString();
                         if (vehicle instanceof Boat) {
                             rideState = "in_boat";
                         } else if (vehicle instanceof AbstractMinecart) {
@@ -138,7 +133,6 @@ public class PlayerDataSender {
                 }
 
                 // --- Format as JSON String ---
-                // Using String.format for simplicity. For complex objects, a library like Gson is recommended.
                 String jsonData = String.format(
                         "{" +
                                 "\"playerName\":\"%s\"," +
@@ -183,7 +177,6 @@ public class PlayerDataSender {
                 }
 
             } catch (Exception e) {
-                // Catch any exception during data gathering to prevent the thread from crashing.
                 LOGGER.error("[DataSender] An error occurred while gathering player data.", e);
             }
         });
