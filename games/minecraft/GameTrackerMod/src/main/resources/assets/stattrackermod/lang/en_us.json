@@ -1,0 +1,13 @@
+{
+  "itemGroup.stattrackermod": "Example Mod Tab",
+  "block.stattrackermod.example_block": "Example Block",
+  "item.stattrackermod.example_item": "Example Item",
+
+  "stattrackermod.configuration.title": "Stat Tracker Mod Configs",
+  "stattrackermod.configuration.section.stattrackermod.common.toml": "Stat Tracker Mod Configs",
+  "stattrackermod.configuration.section.stattrackermod.common.toml.title": "Stat Tracker Mod Configs",
+  "stattrackermod.configuration.items": "Item List",
+  "stattrackermod.configuration.logDirtBlock": "Log Dirt Block",
+  "stattrackermod.configuration.magicNumberIntroduction": "Magic Number Text",
+  "stattrackermod.configuration.magicNumber": "Magic Number"
+}
