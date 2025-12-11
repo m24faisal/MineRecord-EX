@@ -13,19 +13,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataFormat import DataSnap
 from dbManage import Database
 
-# Import the new library file
-from receive import listen_for_messages
+# --- CHANGE: Import the new socket server module ---
+from receive import start_socket_server, stop_socket_server
 from screenRecord import start_ffmpeg_process
 from db_export import export_player_data_to_csv
 
 # Global dictionary to track active recordings
 active_recordings = {}
 
-# Global dictionary to track data collection threads
-data_collection_threads = {}
+# --- CHANGE: A global variable for the server thread ---
+# We no longer need to track stop events for each recording, just one for the server.
+server_thread = None
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
+    global server_thread # Use the global server_thread variable
+
     try:
         recording_id = str(uuid.uuid4())
         
@@ -52,23 +55,15 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             "enable_data_collection": enable_data_collection
         }
         
-        # Start data collection in a separate thread if enabled
+        # --- CHANGE: Start the socket server if data collection is enabled ---
         if enable_data_collection:
-            print(f"[*] Data collection enabled for {game_name}. Starting listener thread.")
-            # Create a threading.Event to signal the thread to stop
-            stop_event = threading.Event()
-            
-            # Create and start the thread
-            data_thread = threading.Thread(target=listen_for_messages, args=(stop_event,))
-            data_thread.daemon = True
-            data_thread.start()
-            
-            # Store the thread and its stop event in our global dictionary
-            data_collection_threads[recording_id] = {
-                "thread": data_thread,
-                "stop_event": stop_event
-            }
-            active_recordings[recording_id]["data_thread"] = data_thread
+            if server_thread is None or not server_thread.is_alive():
+                print(f"[*] Data collection enabled. Starting socket server thread.")
+                server_thread = threading.Thread(target=start_socket_server)
+                server_thread.daemon = True # Allows main program to exit even if thread is running
+                server_thread.start()
+            else:
+                print("[*] Socket server is already running.")
         else:
             print(f"[*] Data collection disabled for {game_name}.")
         
@@ -86,22 +81,24 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        # --- Gracefully terminate the data collection thread ---
-        if recording_id in data_collection_threads:
-            collection_info = data_collection_threads[recording_id]
-            print(f"[*] Signaling data collection thread for {recording['game_name']} to stop.")
-            collection_info["stop_event"].set() # Signal the event to stop the loop
-            # Wait for the thread to finish its work
-            collection_info["thread"].join(timeout=10)
-            print(f"[*] Data collection thread for {recording['game_name']} has stopped.")
-            # Remove it from our tracking dictionary
-            del data_collection_threads[recording_id]
+        # --- CHANGE: Check if we should stop the server ---
+        # We only stop the server if there are no other active recordings that need it.
+        should_stop_server = True
+        for other_rec_id, other_rec in active_recordings.items():
+            if other_rec_id != recording_id and other_rec.get("enable_data_collection", False):
+                should_stop_server = False
+                break
         
-        # --- Terminate the screen recording process ---
+        if should_stop_server:
+            print("[*] No other recordings need data collection. Stopping socket server.")
+            stop_socket_server()
+            if server_thread and server_thread.is_alive():
+                server_thread.join(timeout=5) # Wait for the server to finish
+
+        # --- Terminate the screen recording process (this part is the same) ---
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
             print(f"[*] Stopping screen recording for {recording['game_name']}...")
-            # Send 'q' followed by a newline to the process's stdin
             screen_process.communicate(input='q\n'.encode())
             print("[*] Screen recording process stopped gracefully.")
         
@@ -130,15 +127,14 @@ def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
     print("[*] SHUTDOWN: Shutdown signal received. Stopping all active recordings...")
     
-    # First, stop all data collection threads
-    if data_collection_threads:
-        print(f"[*] SHUTDOWN: Found {len(data_collection_threads)} data collection threads to stop.")
-        for recording_id, collection_info in list(data_collection_threads.items()):
-            print(f"[*] SHUTDOWN: Stopping data collection thread for recording {recording_id}.")
-            collection_info["stop_event"].set()
-            collection_info["thread"].join(timeout=10)
-            print(f"[*] SHUTDOWN: Data collection thread for recording {recording_id} has stopped.")
-    
+    # --- CHANGE: Stop the socket server first ---
+    print("[*] SHUTDOWN: Stopping data collection server...")
+    stop_socket_server()
+    global server_thread
+    if server_thread and server_thread.is_alive():
+        server_thread.join(timeout=5)
+        print("[*] SHUTDOWN: Server thread has stopped.")
+
     # Then, stop all recordings
     if not active_recordings:
         print("[*] SHUTDOWN: No active recordings to stop.")
@@ -150,6 +146,13 @@ def shutdown_all():
     
     for recording_id in recording_ids_to_stop:
         print(f"[*] SHUTDOWN: Stopping recording ID: {recording_id}")
-        stop_recording(recording_id)
-    
+        # We don't need to call stop_recording here to avoid redundant server checks
+        # Just stop the FFmpeg process directly
+        if recording_id in active_recordings:
+            recording = active_recordings[recording_id]
+            screen_process = recording.get("screen_process")
+            if screen_process and screen_process.poll() is None:
+                print(f"[*] SHUTDOWN: Terminating FFmpeg for {recording['game_name']}.")
+                screen_process.terminate()
+
     print("[*] SHUTDOWN: All recordings have been stopped.")
