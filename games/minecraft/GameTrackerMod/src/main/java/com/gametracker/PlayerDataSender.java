@@ -3,7 +3,11 @@ package com.gametracker; // <-- IMPORTANT: Change this to your package
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
@@ -23,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This class is responsible for sending detailed player data from the Minecraft client
@@ -78,7 +83,7 @@ public class PlayerDataSender {
 
                 // 4. Location and Momentum (formatted as strings)
                 String plyrLocation = String.format("[%.2f, %.2f, %.2f]", player.getX(), player.getY(), player.getZ());
-                String plyrMomentum = String.format("%.2f", player.getDeltaMovement().length());
+                double plyrMomentum = player.getDeltaMovement().length();
 
                 // 5. Player Facing Direction
                 Direction facing = player.getDirection();
@@ -118,10 +123,8 @@ public class PlayerDataSender {
                     MobEffect mobEffect = effect.getEffect().value();
 
                     String name = mobEffect.getDisplayName().getString();
-
                     // FIX 2: Use BuiltInRegistries to access the registry
                     String type = "minecraft:" + net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getKey(mobEffect).getPath();
-
                     double duration = effect.getDuration();
                     int amplifierLevel = effect.getAmplifier();
                     statusParts.add(String.format("%s,%s,%.1f,%d", name, type, duration, amplifierLevel));

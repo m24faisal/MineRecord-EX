@@ -18,14 +18,6 @@
 #include <QDebug>
 #include <QMessageBox>
 
-// --- FIX 1: Remove the entire duplicate class definition from this file ---
-// The class definition should ONLY be in mainwindow.h.
-// This file should only contain the implementations of the member functions.
-
-// --- FIX 2: Remove unused include ---
-// The <functional> header was included but not used directly.
-// #include <functional>  <-- This line can be removed.
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -34,10 +26,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // Load settings before setting up UI
-    loadSettings(); // This function is now declared in the header
+    // Load settings BEFORE applying them or setting up UI
+    loadSettings();
 
-    // Apply settings before setting up UI
+    // Apply settings
     applySettings();
 
     // Set up the main window UI
@@ -78,10 +70,32 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // --- Python Integration ---
     initializePythonBackend();
+
+    // --- NEW: Start the global data collection service if enabled ---
+    // This runs once on startup and is independent of recording state.
+    if (enableDataCollection) {
+        qDebug() << "Data collection is enabled. Starting global Python service.";
+        try {
+            backend_module.attr("start_data_collection_service")(enableDataCollection);
+        } catch (const py::error_already_set &e) {
+            qWarning() << "Failed to start data collection service:" << e.what();
+        }
+    }
 }
 
 MainWindow::~MainWindow()
 {
+    // --- NEW: Stop the global data collection service on shutdown ---
+    // This ensures the server thread is cleaned up properly.
+    qDebug() << "Stopping global Python data collection service...";
+    if (backend_module) {
+        try {
+            backend_module.attr("stop_data_collection_service")();
+        } catch (const py::error_already_set &e) {
+            qWarning() << "Failed to stop data collection service:" << e.what();
+        }
+    }
+
     // Call shutdown function as a very first step
     shutdownPythonBackend();
 
@@ -296,11 +310,8 @@ void MainWindow::on_actionInfo_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     if (!settingsDialog) {
-        // FIX 3: Correct the SettingsDialog constructor call.
-        // The constructor in settingsdialog.h is: SettingsDialog(QWidget *parent = nullptr, std::function<QString(const QString&, const QString&)> exportFunc = nullptr)
-        // We need to pass the parent (this) and a valid function.
+        // Pass a lambda function that calls the Python backend
         settingsDialog = new SettingsDialog(this, [this](const QString &playerName, const QString &exportPath) {
-            // This lambda correctly calls the Python backend and returns the result as a QString
             if (!backend_module) {
                 return QString("Error: Python backend is not initialized.");
             }
@@ -488,13 +499,6 @@ void MainWindow::loadProgramData()
 void MainWindow::loadSettings()
 {
     QSettings settings("YourCompany", "GameManager");
-
-    // Load theme
-    // Note: In your original code, this was loaded in applySettings. It's better to load all settings here.
-    // QString theme = settings.value("theme", "Default").toString();
-
-    // Load paths
-    // QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
 
     // Load data collection setting
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
