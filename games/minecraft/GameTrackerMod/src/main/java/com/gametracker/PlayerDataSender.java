@@ -3,11 +3,9 @@ package com.gametracker; // <-- IMPORTANT: Change this to your package
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -25,11 +23,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * This class is responsible for sending detailed player data from the Minecraft client
- * to an external Python server every second.
+ * to an external Python server every second, formatted to match the backend's dataFormat.py.
  */
 @EventBusSubscriber(Dist.CLIENT)
 public class PlayerDataSender {
@@ -63,107 +60,119 @@ public class PlayerDataSender {
             }
 
             try {
-                // --- Gather Player Data ---
+                // --- Gather and Format Player Data to match dataFormat.py ---
 
-                // 1. Basic Info
-                String playerName = player.getName().getString();
+                // 1. Basic Info & FPS
+                String plyrName = player.getName().getString();
+                float fps = mc.getFps();
 
-                // 2. FPS (Frames Per Second)
-                int fps = mc.getFps();
+                // 2. Date and Time (split into two fields as required by DataSnap)
+                LocalDateTime now = LocalDateTime.now();
+                String date = now.format(DateTimeFormatter.ISO_LOCAL_DATE);
+                String time = now.format(DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSSSS"));
 
-                // 3. Date and Time
-                String dateTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                // 3. Health and Hunger
+                float plyrHealth = player.getHealth();
+                float plyrHunger = player.getFoodData().getFoodLevel();
+                float plyrSat = player.getFoodData().getSaturationLevel();
 
-                // 4. Health and Hunger
-                float health = player.getHealth();
-                int foodLevel = player.getFoodData().getFoodLevel();
-                float saturationLevel = player.getFoodData().getSaturationLevel();
+                // 4. Location and Momentum (formatted as strings)
+                String plyrLocation = String.format("[%.2f, %.2f, %.2f]", player.getX(), player.getY(), player.getZ());
+                String plyrMomentum = String.format("%.2f", player.getDeltaMovement().length());
 
-                // 5. Location and Movement
-                double x = player.getX();
-                double y = player.getY();
-                double z = player.getZ();
-                String momentum = String.format("%.2f,%.2f,%.2f", player.getDeltaMovement().x, player.getDeltaMovement().y, player.getDeltaMovement().z);
-
-                // 6. Player Facing Direction
+                // 5. Player Facing Direction
                 Direction facing = player.getDirection();
-                String facingName = facing.getName();
+                String plyrFacing = String.format("(%s,)", facing.getName());
 
-                // 7. View and Selected Item/Slot
-                float yaw = mc.player != null ? mc.player.getYRot() : 0;
-                float pitch = mc.player != null ? mc.player.getXRot() : 0;
+                // 6. View and Selected Item/Slot
+                String plyrView = String.format("[%.2f, %.2f, %.2f]", player.getYRot(), player.getXRot(), 0.0f);
+                int plyrSelectedSlot = player.getInventory().getSelectedSlot();
+                ItemStack selectedItemStack = player.getInventory().getItem(plyrSelectedSlot);
+                String plyrSelectedItem = selectedItemStack.getDisplayName().getString();
 
-                // FIX 1: Use the public getSelected() method instead of accessing the private 'selected' field.
-                int selectedSlot = player.getInventory().getSelectedSlot();
-                ItemStack selectedItem = player.getInventory().getItem(selectedSlot);
-
-                // FIX 2 & 3: Use getDisplayName().getString() on the ItemStack to get the item's name.
-                Component selectedNameComponent = selectedItem.getDisplayName();
-                String selectedItemName = selectedNameComponent.getString();
-                int selectedItemCount = selectedItem.getCount();
-
-                // 8. Player Inventory
-                List<String> inventoryJson = new ArrayList<>();
+                // 7. Player Inventory (formatted as "ItemName:Count; ItemName:Count;")
+                List<String> inventoryParts = new ArrayList<>();
                 for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                     ItemStack stack = player.getInventory().getItem(i);
                     if (!stack.isEmpty()) {
-                        // FIX 3 (again): Use getDisplayName().getString() here as well.
-                        inventoryJson.add(String.format("%d:%s:%d", i, stack.getDisplayName().getString(), stack.getCount()));
+                        String itemName = stack.getDisplayName().getString();
+                        int itemCount = stack.getCount();
+                        inventoryParts.add(String.format("%s:%d", itemName, itemCount));
                     }
                 }
-                String inventoryString = String.join(",", inventoryJson);
-
-                // 9. Ride State
-                boolean isRiding = player.isPassenger();
-                String rideState = "walking";
-                String rideVehicleType = "none";
-                if (isRiding) {
-                    Entity vehicle = player.getVehicle();
-                    if (vehicle != null) {
-                        // FIX 3 (again): Use getDisplayName().getString() for the vehicle name.
-                        rideVehicleType = vehicle.getDisplayName().getString();
-                        if (vehicle instanceof Boat) {
-                            rideState = "in_boat";
-                        } else if (vehicle instanceof AbstractMinecart) {
-                            rideState = "in_minecart";
-                        } else {
-                            rideState = "riding_entity";
-                        }
-                    }
+                String plyrInventory = String.join("; ", inventoryParts);
+                if (plyrInventory.isEmpty()) {
+                    plyrInventory = "None";
                 }
 
-                // --- Format as JSON String ---
+                // 8. Player Armor and Offhand
+                ItemStack mainHandItem = player.getMainHandItem();
+                ItemStack offHandItem = player.getOffhandItem();
+                String plyrArmor = mainHandItem.getDisplayName().getString(); // Simplified: Assuming main hand is "armor"
+                String plyrOffhand = offHandItem.getDisplayName().getString();
+
+                // 9. Player Status/Effects (formatted as "name,type,duration,amplifier; name,type,duration,amplifier;")
+                List<String> statusParts = new ArrayList<>();
+                for (MobEffectInstance effect : player.getActiveEffects()) {
+                    // FIX 1: Call .value() on the Holder to get the MobEffect instance
+                    MobEffect mobEffect = effect.getEffect().value();
+
+                    String name = mobEffect.getDisplayName().getString();
+
+                    // FIX 2: Use BuiltInRegistries to access the registry
+                    String type = "minecraft:" + net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getKey(mobEffect).getPath();
+
+                    double duration = effect.getDuration();
+                    int amplifierLevel = effect.getAmplifier();
+                    statusParts.add(String.format("%s,%s,%.1f,%d", name, type, duration, amplifierLevel));
+                }
+                String plyrStatus = String.join("; ", statusParts);
+                if (plyrStatus.isEmpty()) {
+                    plyrStatus = "None";
+                }
+
+                // 10. Ride State
+                boolean plyrRideState = player.isPassenger();
+                String plyrRideVehicle = "None";
+                if (plyrRideState && player.getVehicle() != null) {
+                    plyrRideVehicle = player.getVehicle().getDisplayName().getString();
+                }
+
+                // --- Format as a single JSON String ---
+                // The order of keys does not matter for JSON, but keeping it consistent helps.
                 String jsonData = String.format(
                         "{" +
-                                "\"playerName\":\"%s\"," +
-                                "\"fps\":%d," +
-                                "\"dateTime\":\"%s\"," +
-                                "\"health\":%.1f," +
-                                "\"location\":{\"x\":%.2f,\"y\":%.2f,\"z\":%.2f}," +
-                                "\"hunger\":%d," +
-                                "\"saturation\":%.1f," +
-                                "\"inventory\":[%s]," +
-                                "\"view\":{\"yaw\":%.2f,\"pitch\":%.2f}," +
-                                "\"selectedSlot\":%d," +
-                                "\"selectedItem\":\"%s\"," +
-                                "\"selectedItemCount\":%d," +
-                                "\"facing\":\"%s\"," +
-                                "\"momentum\":\"%s\"," +
-                                "\"isRiding\":%b," +
-                                "\"rideState\":\"%s\"," +
-                                "\"rideVehicleType\":\"%s\"" +
+                                "\"fps\":%.1f," +
+                                "\"time\":\"%s\"," +
+                                "\"date\":\"%s\"," +
+                                "\"plyrName\":\"%s\"," +
+                                "\"plyrLocation\":\"%s\"," +
+                                "\"plyrHealth\":%.1f," +
+                                "\"plyrInventory\":\"%s\"," +
+                                "\"plyrArmor\":\"%s\"," +
+                                "\"plyrOffhand\":\"%s\"," +
+                                "\"plyrStatus\":\"%s\"," +
+                                "\"plyrHunger\":%.1f," +
+                                "\"plyrSat\":%.1f," +
+                                "\"plyrView\":\"%s\"," +
+                                "\"plyrFacing\":\"%s\"," +
+                                "\"plyrSelectedSlot\":%d," +
+                                "\"plyrSelectedItem\":\"%s\"," +
+                                "\"plyrRideState\":%b," +
+                                "\"plyrRideVehicle\":\"%s\"," +
+                                "\"plyrMomentum\":%.2f" +
                                 "}",
-                        playerName, fps, dateTime, health, x, y, z, foodLevel, saturationLevel,
-                        inventoryJson.stream().map(s -> "\"" + s + "\"").collect(Collectors.joining(",")),
-                        yaw, pitch, selectedSlot, selectedItemName, selectedItemCount,
-                        facingName, momentum, isRiding, rideState, rideVehicleType
+                        fps, time, date, plyrName, plyrLocation, plyrHealth, plyrInventory,
+                        plyrArmor, plyrOffhand, plyrStatus, plyrHunger, plyrSat, plyrView,
+                        plyrFacing, plyrSelectedSlot, plyrSelectedItem, plyrRideState,
+                        plyrRideVehicle, plyrMomentum
                 );
 
                 // --- Send Data ---
                 try (Socket socket = new Socket(PYTHON_SERVER_HOST, PYTHON_SERVER_PORT)) {
-                    socket.setSoTimeout(2000);
+                    socket.setSoTimeout(2000); // 2-second timeout
                     OutputStream output = socket.getOutputStream();
-                    PrintWriter writer = new PrintWriter(output, true);
+                    PrintWriter writer = new PrintWriter(output, true); // true for auto-flushing
                     LOGGER.info("[DataSender] Sending data to Python server.");
                     writer.println(jsonData);
                 } catch (UnknownHostException e) {
