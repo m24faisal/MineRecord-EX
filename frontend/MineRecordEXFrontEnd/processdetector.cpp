@@ -84,16 +84,21 @@ void ProcessDetector::updateCacheWindows()
     // Use wmic for faster process listing on Windows
     QProcess wmic;
     wmic.start("wmic", QStringList() << "process" << "get" << "name" << "/FORMAT:csv");
-    wmic.waitForFinished(500); // Wait max 500ms
+
+    // --- FIX: Wait for the process to finish before it's destroyed ---
+    // This prevents the "QProcess: Destroyed while process is still running" warning.
+    wmic.waitForFinished(500); // Wait for a maximum of 500ms
 
     if (wmic.exitCode() != 0) {
         // Fallback to tasklist if wmic fails
         QProcess tasklist;
         tasklist.start("tasklist", QStringList() << "/FO" << "CSV");
+
+        // --- FIX: Also wait for tasklist to finish ---
         tasklist.waitForFinished(500);
 
         QString output = tasklist.readAllStandardOutput();
-        const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
+        const QStringList lines = output.split('\n');
 
         // Skip the header line
         for (int i = 1; i < lines.size(); ++i) {
@@ -116,7 +121,7 @@ void ProcessDetector::updateCacheWindows()
         }
     } else {
         QString output = wmic.readAllStandardOutput();
-        const QStringList lines = output.split('\n'); // FIX: Declare as const to prevent detach
+        const QStringList lines = output.split('\n'); // Declare as const to prevent detach
 
         // Skip header lines
         for (int i = 2; i < lines.size(); ++i) {

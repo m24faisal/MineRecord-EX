@@ -1,16 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-// --- CRITICAL FIX: Include pybind11 FIRST ---
-// This prevents Qt's macros (like 'slots') from interfering with pybind11's headers.
-#include <pybind11/embed.h>
-
-// --- CRITICAL FIX: Define the pybind11 namespace alias at global scope ---
-// This makes the 'py::' alias available to the rest of this file.
-namespace py = pybind11;
-
-
-// --- Now, include Qt headers ---
+// --- Include Qt headers ONLY ---
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QFileInfo>
@@ -19,18 +10,20 @@ namespace py = pybind11;
 #include <QMenu>
 #include <QEvent>
 #include <QMessageBox>
+#include <QProcess>
 
-// --- Forward declare the Ui namespace ---
+// --- Forward declare the Qt-generated UI namespace ---
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
 QT_END_NAMESPACE
 
-// --- Forward declare other custom classes ---
+// --- Forward declare custom classes ---
 class ProgramInfo;
 class InfoDialog;
 class SettingsDialog;
+class PythonBackendWrapper;
 
 class MainWindow : public QMainWindow
 {
@@ -55,27 +48,31 @@ public slots:
     void startRecording();
     void stopRecording();
 
+private slots:
+    void handleDataCollectionError(QProcess::ProcessError error);
+
 private:
+    // UI Setup and Management
     void setupUI();
     void addExecutableToTable(const QFileInfo &fileInfo);
     void saveProgramData();
     void loadProgramData();
     void loadSettings();
     void applySettings();
-    void shutdownPythonBackend();
 
-    // Python communication methods
+    // Python Backend Management (Methods are now simpler)
     void initializePythonBackend();
+    void shutdownPythonBackend();
     QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
     QString stopPythonRecording(const QString &recordingId);
 
-    // The pybind11 interpreter guard is NOT a member variable.
-    // It is initialized once in main.cpp.
+    // --- Member Variables ---
+    // NOTE: The order here is important. The constructor's initializer list must match this order.
 
-    // pybind11 specific members
-    py::module backend_module;
+    // Python backend wrapper - NO pybind11 types here!
+    PythonBackendWrapper* m_pythonWrapper;
 
-    // UI member
+    // UI member (from Qt Designer)
     Ui::MainWindow *ui;
 
     // Other UI and state members
@@ -90,6 +87,7 @@ private:
     InfoDialog *infoDialog;
     SettingsDialog *settingsDialog;
     QString activeRecordingId;
+    QProcess *dataCollectionProcess; // For the standalone server
 
     // Settings
     bool enableDataCollection;

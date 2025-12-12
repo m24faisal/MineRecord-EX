@@ -4,6 +4,7 @@
 #include "processdetector.h"
 #include "infodialog.h"
 #include "settingsdialog.h"
+#include "pythonbackendwrapper.h"
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QFileDialog>
@@ -20,37 +21,41 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
+    // --- CORRECTED: Initializer list order now matches header declaration order ---
+    m_pythonWrapper(nullptr),
     ui(new Ui::MainWindow),
+    executableTable(nullptr),
+    centralWidget(nullptr),
+    updateTimer(nullptr),
+    programs(),
+    contextMenu(nullptr),
+    removeAction(nullptr),
+    startRecordingAction(nullptr),
+    stopRecordingAction(nullptr),
     infoDialog(nullptr),
-    settingsDialog(nullptr)
+    settingsDialog(nullptr),
+    activeRecordingId(""),
+    dataCollectionProcess(nullptr),
+    enableDataCollection(false)
 {
     ui->setupUi(this);
 
-    // Load settings BEFORE applying them or setting up UI
     loadSettings();
+    qDebug() << "SETTINGS LOADED. enableDataCollection is:" << enableDataCollection;
 
-    // Apply settings
     applySettings();
-
-    // Set up the main window UI
     setupUI();
 
-    // Set up a timer to update program status
     updateTimer = new QTimer(this);
     connect(updateTimer, SIGNAL(timeout()), this, SLOT(updateProgramStatus()));
-    updateTimer->start(1000); // Update every 1 second (faster)
+    updateTimer->start(1000);
 
-    // Configure the process detector for faster updates
-    ProcessDetector::instance().setUpdateInterval(500); // Update every 500ms
-
-    // Connect to the process detector's update signal
+    ProcessDetector::instance().setUpdateInterval(500);
     connect(&ProcessDetector::instance(), SIGNAL(processListUpdated()),
             this, SLOT(updateProgramStatus()));
 
-    // Install event filter on the application to catch click events
     qApp->installEventFilter(this);
 
-    // Create context menu
     contextMenu = new QMenu(this);
     removeAction = new QAction("Remove Game", this);
     startRecordingAction = new QAction("Start Recording", this);
@@ -60,130 +65,82 @@ MainWindow::MainWindow(QWidget *parent) :
     contextMenu->addAction(startRecordingAction);
     contextMenu->addAction(stopRecordingAction);
 
-    // Enable context menu on the table
     executableTable->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(executableTable, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showContextMenu(const QPoint &)));
 
-    // Load saved program data
     loadProgramData();
 
     // --- Python Integration ---
-    initializePythonBackend();
+    m_pythonWrapper = new PythonBackendWrapper();
+    m_pythonWrapper->initialize();
 
-    // --- NEW: Start the global data collection service if enabled ---
-    // This runs once on startup and is independent of recording state.
     if (enableDataCollection) {
-        qDebug() << "Data collection is enabled. Attempting to start global Python service.";
-        try {
-            backend_module.attr("start_data_collection_service")(enableDataCollection);
-            qDebug() << "SUCCESS: Python data collection service started.";
-        } catch (const py::error_already_set &e) {
-            // --- FINAL CORRECTED DEBUGGING CODE ---
-            qCritical() << "CRITICAL: Failed to start data collection service!";
-
-            // FIX: Use py::str() to get a string representation of the object
-            py::str py_type(e.type());
-            py::str py_value(e.value());
-            py::str py_trace(e.trace());
-
-            // Now, cast the py::str object to std::string
-            std::string error_type = py_type.cast<std::string>();
-            std::string error_value = py_value.cast<std::string>();
-            std::string error_trace = py_trace.cast<std::string>();
-
-            qCritical() << "Python Error Type:" << QString::fromStdString(error_type);
-            qCritical() << "Python Error Value:" << QString::fromStdString(error_value);
-            qCritical() << "Python Full Traceback:" << QString::fromStdString(error_trace);
-
-            // Also show it to the user in a message box
-            QString errorMsg = "The Python data collection service failed to start.\n";
-            errorMsg += "Error: ";
-            errorMsg += QString::fromStdString(error_value);
-            QMessageBox::critical(this, "Python Service Error", errorMsg);
-        }
+        qDebug() << "Data collection is ENABLED. Attempting to start global Python service NOW.";
+        m_pythonWrapper->startDataService(true);
+        qDebug() << "SUCCESS: Python data collection service started.";
     } else {
-        qDebug() << "Data collection is disabled. Service will not be started.";
+        qDebug() << "Data collection is DISABLED. Service will not be started.";
     }
 }
 
 MainWindow::~MainWindow()
 {
-    // --- NEW: Stop the global data collection service on shutdown ---
-    // This ensures the server thread is cleaned up properly.
     qDebug() << "Stopping global Python data collection service...";
-    if (backend_module) {
-        try {
-            backend_module.attr("stop_data_collection_service")();
-        } catch (const py::error_already_set &e) {
-            qWarning() << "Failed to stop data collection service:" << e.what();
-        }
+    if (m_pythonWrapper) {
+        m_pythonWrapper->stopDataService();
+        delete m_pythonWrapper;
+        m_pythonWrapper = nullptr;
     }
 
-    // Call shutdown function as a very first step
-    shutdownPythonBackend();
-
-    // Save program data before closing
     saveProgramData();
-
-    // Clean up
     qDeleteAll(programs);
     programs.clear();
 
-    // Delete dialogs if they exist
     if (infoDialog) {
         delete infoDialog;
     }
-
     if (settingsDialog) {
         delete settingsDialog;
     }
-
     delete ui;
 }
 
-// --- Python Backend Methods ---
+// --- Python Backend Methods (Updated to use wrapper) ---
 void MainWindow::initializePythonBackend()
 {
-    try {
-        py::exec("import sys; sys.path.append('./backend')");
-        backend_module = py::module::import("backend_controller");
-        qDebug() << "SUCCESS: Python backend initialized.";
-    } catch (const py::error_already_set &e) {
-        QString errorMsg = "Python initialization failed: ";
-        errorMsg += e.what();
-        QMessageBox::critical(this, "Python Backend Error", errorMsg);
+    if (m_pythonWrapper) {
+        qDebug() << "SUCCESS: Python backend initialized via wrapper.";
+    } else {
+        qCritical() << "FAILURE: Python backend wrapper not created.";
     }
+}
+
+void MainWindow::shutdownPythonBackend()
+{
+    // Handled in destructor
 }
 
 QString MainWindow::startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath)
 {
-    if (!backend_module) return "Error: Python backend is not initialized.";
-    try {
-        py::object result = backend_module.attr("start_recording")(
-            gameName.toStdString(),
-            gamePath.toStdString(),
-            recordingPath.toStdString(),
-            enableDataCollection
-            );
-        return QString::fromStdString(result.cast<std::string>());
-    } catch (const py::error_already_set &e) {
-        return QString("Python Error: %1").arg(e.what());
-    }
+    if (!m_pythonWrapper) return "Error: Python wrapper is null.";
+    std::string result = m_pythonWrapper->startRecording(
+        gameName.toStdString(),
+        gamePath.toStdString(),
+        recordingPath.toStdString(),
+        enableDataCollection
+        );
+    return QString::fromStdString(result);
 }
 
 QString MainWindow::stopPythonRecording(const QString &recordingId)
 {
-    if (!backend_module) return "Error: Python backend is not initialized.";
-    try {
-        py::object result = backend_module.attr("stop_recording")(recordingId.toStdString());
-        return QString::fromStdString(result.cast<std::string>());
-    } catch (const py::error_already_set &e) {
-        return QString("Python Error: %1").arg(e.what());
-    }
+    if (!m_pythonWrapper) return "Error: Python wrapper is null.";
+    std::string result = m_pythonWrapper->stopRecording(recordingId.toStdString());
+    return QString::fromStdString(result);
 }
 
-// --- Modified Recording Slots ---
+// --- Recording Slots ---
 void MainWindow::startRecording()
 {
     int currentRow = executableTable->currentRow();
@@ -261,19 +218,30 @@ void MainWindow::stopRecording()
     saveProgramData();
 }
 
-void MainWindow::shutdownPythonBackend()
+void MainWindow::handleDataCollectionError(QProcess::ProcessError error)
 {
-    qDebug() << "C++ SHUTDOWN: Shutting down Python backend...";
-    if (backend_module) {
-        try {
-            backend_module.attr("shutdown_all")();
-            qDebug() << "C++ SHUTDOWN: Successfully called Python shutdown_all function.";
-        } catch (const py::error_already_set &e) {
-            qWarning() << "C++ SHUTDOWN: Error during Python shutdown:" << e.what();
-        }
-    } else {
-        qDebug() << "C++ SHUTDOWN: Python backend module was not initialized.";
+    QString errorMsg;
+    switch (error) {
+    case QProcess::FailedToStart:
+        errorMsg = "Data collection process failed to start.";
+        break;
+    case QProcess::Crashed:
+        errorMsg = "Data collection process crashed.";
+        break;
+    case QProcess::Timedout:
+        errorMsg = "Data collection process timed out.";
+        break;
+    case QProcess::WriteError:
+        errorMsg = "Error writing to data collection process.";
+        break;
+    case QProcess::ReadError:
+        errorMsg = "Error reading from data collection process.";
+        break;
+    default:
+        errorMsg = "Unknown error occurred with data collection process.";
+        break;
     }
+    QMessageBox::critical(this, "Data Collection Error", errorMsg);
 }
 
 // --- All other existing methods ---
@@ -334,17 +302,12 @@ void MainWindow::on_actionInfo_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     if (!settingsDialog) {
-        // Pass a lambda function that calls the Python backend
         settingsDialog = new SettingsDialog(this, [this](const QString &playerName, const QString &exportPath) {
-            if (!backend_module) {
-                return QString("Error: Python backend is not initialized.");
+            if (!m_pythonWrapper) {
+                return QString("Error: Python wrapper is not initialized.");
             }
-            try {
-                py::object result = backend_module.attr("export_player_data")(playerName.toStdString(), exportPath.toStdString());
-                return QString::fromStdString(result.cast<std::string>());
-            } catch (const py::error_already_set &e) {
-                return QString("Python Error: %1").arg(e.what());
-            }
+            std::string result = m_pythonWrapper->exportPlayerData(playerName.toStdString(), exportPath.toStdString());
+            return QString::fromStdString(result);
         });
     }
     settingsDialog->show();
@@ -515,21 +478,22 @@ void MainWindow::loadProgramData()
     }
     settings.endArray();
     executableTable->resizeColumnsToContents();
-
-    // Load data collection setting
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
 
 void MainWindow::loadSettings()
 {
+    qDebug() << "loadSettings() called.";
     QSettings settings("YourCompany", "GameManager");
-
-    // Load data collection setting
-    enableDataCollection = settings.value("enableDataCollection", false).toBool();
+    bool dataCollectionSetting = settings.value("enableDataCollection", false).toBool();
+    qDebug() << "Value from QSettings is:" << dataCollectionSetting;
+    enableDataCollection = dataCollectionSetting;
+    qDebug() << "Member variable enableDataCollection is now set to:" << enableDataCollection;
 }
 
 void MainWindow::applySettings()
 {
+    qDebug() << "applySettings() called.";
     QSettings settings("YourCompany", "GameManager");
     QString theme = settings.value("theme", "Default").toString();
     if (theme == "Dark") {
@@ -541,8 +505,6 @@ void MainWindow::applySettings()
     } else {
         QApplication::setStyle(QStyleFactory::create("windowsvista"));
     }
-
-    // Create directories if they don't exist
     QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
     QDir dir;
     if (!dir.exists(recordingPath)) {

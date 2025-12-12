@@ -4,6 +4,7 @@ import os
 import uuid
 import threading
 import subprocess
+import traceback # Import traceback to print the full error
 from datetime import datetime
 
 # Add the parent directory to the path to import backend modules
@@ -27,27 +28,47 @@ server_thread = None
 def start_data_collection_service(enable_data_collection):
     """Starts the global data collection server if enabled."""
     global server_thread
-    if enable_data_collection:
-        if server_thread is None or not server_thread.is_alive():
-            print("[*] Data collection is enabled. Starting global socket server.")
-            server_thread = threading.Thread(target=start_socket_server)
-            server_thread.daemon = True # Allows main program to exit even if thread is running
-            server_thread.start()
-        else:
-            print("[*] Global socket server is already running.")
-    else:
+    print(f"[*] start_data_collection_service called with enable_data_collection = {enable_data_collection}")
+    
+    if not enable_data_collection:
         print("[*] Data collection is disabled. Server will not be started.")
+        return
+
+    if server_thread is not None and server_thread.is_alive():
+        print("[*] Global socket server is already running.")
+        return
+
+    print("[*] Data collection is enabled. Starting global socket server.")
+    try:
+        # This is the most likely line to fail. Let's wrap it.
+        server_thread = threading.Thread(target=start_socket_server, daemon=True)
+        server_thread.start()
+        print("[*] Socket server thread started successfully.")
+    except Exception as e:
+        # This will now catch ANY error, print it, and re-raise it
+        print(f"[!!!] CRITICAL ERROR: Failed to start socket server thread: {e}")
+        print("!!! FULL TRACEBACK:")
+        traceback.print_exc() # Print the full Python traceback
+        # Re-raise the exception so C++ can catch it
+        raise
 
 def stop_data_collection_service():
     """Stops the global data collection server."""
     global server_thread
-    if server_thread and server_thread.is_alive():
-        print("[*] Stopping global socket server.")
-        stop_socket_server()
-        server_thread.join(timeout=5) # Wait for the server to finish
-        print("[*] Global socket server has stopped.")
-    else:
+    if server_thread is None or not server_thread.is_alive():
         print("[*] Global socket server is not running.")
+        return
+
+    print("[*] Stopping global socket server.")
+    try:
+        stop_socket_server()
+        if server_thread:
+            server_thread.join(timeout=5)
+            print("[*] Global socket server has stopped.")
+    except Exception as e:
+        print(f"[!!!] ERROR: Failed to stop socket server: {e}")
+        traceback.print_exc()
+        raise
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""

@@ -9,6 +9,8 @@ SOURCES += \
     mainwindow.cpp \
     programinfo.cpp \
     processdetector.cpp \
+    python_interpreter.cpp \
+    pythonbackendwrapper.cpp \
     settingsdialog.cpp
 
 HEADERS += \
@@ -16,6 +18,7 @@ HEADERS += \
     mainwindow.h \
     programinfo.h \
     processdetector.h \
+    pythonbackendwrapper.h \
     settingsdialog.h
 
 FORMS += \

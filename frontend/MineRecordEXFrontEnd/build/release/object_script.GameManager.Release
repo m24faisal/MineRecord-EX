@@ -3,6 +3,8 @@ release/main.o
 release/mainwindow.o
 release/programinfo.o
 release/processdetector.o
+release/python_interpreter.o
+release/pythonbackendwrapper.o
 release/settingsdialog.o
 release/qrc_resources.o
 release/moc_infodialog.o
