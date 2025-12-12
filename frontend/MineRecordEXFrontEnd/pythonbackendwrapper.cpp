@@ -1,17 +1,23 @@
 #include "pythonbackendwrapper.h"
-// --- CRITICAL FIX: REMOVED #include <QDebug> ---
-// We now use standard C++ iostream for logging to avoid any Qt/pybind11 conflict.
 
-#include <iostream> // For std::cout, std::cerr, std::endl
-
-// --- THIS IS THE ONLY PLACE WHERE PYBIND11 IS INCLUDED ---
+// --- THIS IS THE CORRECT ORDER ---
+// 1. Include pybind11 headers first.
 #include <pybind11/embed.h>
 namespace py = pybind11;
 
-// --- The private implementation struct holds all pybind11 members ---
+// 2. THEN include Qt headers.
+#include <QDebug>
+#include <QProcess>
+#include <QDir>
+
+// --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
     py::module backend_module;
     bool isInitialized = false;
+
+    // --- QProcess is now declared here, inside the private struct ---
+    QProcess* serverProcess;
+    QProcess* writerProcess;
 };
 
 PythonBackendWrapper::PythonBackendWrapper()
@@ -32,11 +38,9 @@ void PythonBackendWrapper::initialize()
         py::exec("import sys; sys.path.append('./backend')");
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
-        // --- FIX: Replaced qDebug() with std::cout ---
-        std::cout << "SUCCESS: Python backend initialized via wrapper." << std::endl;
+        qDebug() << "SUCCESS: Python backend initialized via wrapper.";
     } catch (const py::error_already_set &e) {
-        // --- FIX: Replaced qCritical() with std::cerr ---
-        std::cerr << "Python initialization failed: " << e.what() << std::endl;
+        qCritical() << "Python initialization failed:" << e.what();
         d->isInitialized = false;
     }
 }
@@ -48,15 +52,78 @@ void PythonBackendWrapper::shutdown()
         return;
     }
     try {
-        d->backend_module.attr("stop_data_collection_service")();
         d->backend_module.attr("shutdown_all")();
-        // --- FIX: Replaced qDebug() with std::cout ---
-        std::cout << "SUCCESS: Python backend shutdown via wrapper." << std::endl;
+        qDebug() << "SUCCESS: Python backend shutdown via wrapper.";
     } catch (const py::error_already_set &e) {
-        // --- FIX: Replaced qWarning() with std::cerr ---
-        std::cerr << "Error during Python shutdown: " << e.what() << std::endl;
+        qWarning() << "Error during Python shutdown:" << e.what();
     }
     d->isInitialized = false;
+}
+
+void PythonBackendWrapper::startDataService()
+{
+    PythonBackendWrapperPrivate *d = d_ptr_cast();
+    if (!d->isInitialized) {
+        qCritical() << "Cannot start service: Python backend not initialized.";
+        return;
+    }
+    if (d->serverProcess && d->serverProcess->state() == QProcess::Running) {
+        qDebug() << "Data collection processes are already running.";
+        return;
+    }
+
+    // --- Start the Standalone Server ---
+    d->serverProcess = new QProcess();
+    QString serverScript = QDir::currentPath() + "/backend/data_receiver_server.py";
+    d->serverProcess->start("python", QStringList() << serverScript);
+    if (!d->serverProcess->waitForStarted()) {
+        qCritical() << "Failed to start server process:" << d->serverProcess->errorString();
+        delete d->serverProcess;
+        d->serverProcess = nullptr;
+        return;
+    }
+    qDebug() << "Standalone Server process started with PID:" << d->serverProcess->processId();
+
+    // --- Start the Database Writer ---
+    d->writerProcess = new QProcess();
+    QString writerScript = QDir::currentPath() + "/backend/db_writer.py";
+    d->writerProcess->start("python", QStringList() << writerScript);
+    if (!d->writerProcess->waitForStarted()) {
+        qCritical() << "Failed to start writer process:" << d->writerProcess->errorString();
+        delete d->writerProcess;
+        d->writerProcess = nullptr;
+        // If writer fails, we should stop the server too
+        if(d->serverProcess) { d->serverProcess->kill(); d->serverProcess->waitForFinished(); delete d->serverProcess; d->serverProcess = nullptr; }
+        return;
+    }
+    qDebug() << "Database Writer process started with PID:" << d->writerProcess->processId();
+}
+
+void PythonBackendWrapper::stopDataService()
+{
+    PythonBackendWrapperPrivate *d = d_ptr_cast();
+    if (d->serverProcess) {
+        qDebug() << "Stopping server process...";
+        d->serverProcess->terminate();
+        if (!d->serverProcess->waitForFinished(5000)) {
+            d->serverProcess->kill();
+            d->serverProcess->waitForFinished();
+        }
+        delete d->serverProcess;
+        d->serverProcess = nullptr;
+    }
+
+    if (d->writerProcess) {
+        qDebug() << "Stopping writer process...";
+        d->writerProcess->terminate();
+        if (!d->writerProcess->waitForFinished(5000)) {
+            d->writerProcess->kill();
+            d->writerProcess->waitForFinished();
+        }
+        delete d->writerProcess;
+        d->writerProcess = nullptr;
+    }
+    qDebug() << "Data collection processes stopped.";
 }
 
 std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath, const std::string& recordingPath, bool enableDataCollection)
@@ -80,30 +147,6 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
         return result.cast<std::string>();
     } catch (const py::error_already_set &e) {
         return std::string("Python Error: ") + e.what();
-    }
-}
-
-void PythonBackendWrapper::startDataService(bool enabled)
-{
-    PythonBackendWrapperPrivate *d = d_ptr_cast();
-    if (!d->isInitialized) return;
-    try {
-        d->backend_module.attr("start_data_collection_service")(enabled);
-    } catch (const py::error_already_set &e) {
-        // --- FIX: Replaced qCritical() with std::cerr ---
-        std::cerr << "Failed to start data collection service: " << e.what() << std::endl;
-    }
-}
-
-void PythonBackendWrapper::stopDataService()
-{
-    PythonBackendWrapperPrivate *d = d_ptr_cast();
-    if (!d->isInitialized) return;
-    try {
-        d->backend_module.attr("stop_data_collection_service")();
-    } catch (const py::error_already_set &e) {
-        // --- FIX: Replaced qWarning() with std::cerr ---
-        std::cerr << "Error stopping data collection service: " << e.what() << std::endl;
     }
 }
 

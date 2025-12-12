@@ -75,10 +75,10 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pythonWrapper = new PythonBackendWrapper();
     m_pythonWrapper->initialize();
 
+    // --- Start the global data collection service IF AND ONLY IF the setting is enabled ---
     if (enableDataCollection) {
         qDebug() << "Data collection is ENABLED. Attempting to start global Python service NOW.";
-        m_pythonWrapper->startDataService(true);
-        qDebug() << "SUCCESS: Python data collection service started.";
+        m_pythonWrapper->startDataService(); // Correct function name
     } else {
         qDebug() << "Data collection is DISABLED. Service will not be started.";
     }
