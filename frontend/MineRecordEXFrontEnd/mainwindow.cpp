@@ -74,12 +74,36 @@ MainWindow::MainWindow(QWidget *parent) :
     // --- NEW: Start the global data collection service if enabled ---
     // This runs once on startup and is independent of recording state.
     if (enableDataCollection) {
-        qDebug() << "Data collection is enabled. Starting global Python service.";
+        qDebug() << "Data collection is enabled. Attempting to start global Python service.";
         try {
             backend_module.attr("start_data_collection_service")(enableDataCollection);
+            qDebug() << "SUCCESS: Python data collection service started.";
         } catch (const py::error_already_set &e) {
-            qWarning() << "Failed to start data collection service:" << e.what();
+            // --- FINAL CORRECTED DEBUGGING CODE ---
+            qCritical() << "CRITICAL: Failed to start data collection service!";
+
+            // FIX: Use py::str() to get a string representation of the object
+            py::str py_type(e.type());
+            py::str py_value(e.value());
+            py::str py_trace(e.trace());
+
+            // Now, cast the py::str object to std::string
+            std::string error_type = py_type.cast<std::string>();
+            std::string error_value = py_value.cast<std::string>();
+            std::string error_trace = py_trace.cast<std::string>();
+
+            qCritical() << "Python Error Type:" << QString::fromStdString(error_type);
+            qCritical() << "Python Error Value:" << QString::fromStdString(error_value);
+            qCritical() << "Python Full Traceback:" << QString::fromStdString(error_trace);
+
+            // Also show it to the user in a message box
+            QString errorMsg = "The Python data collection service failed to start.\n";
+            errorMsg += "Error: ";
+            errorMsg += QString::fromStdString(error_value);
+            QMessageBox::critical(this, "Python Service Error", errorMsg);
         }
+    } else {
+        qDebug() << "Data collection is disabled. Service will not be started.";
     }
 }
 

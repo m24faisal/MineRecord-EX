@@ -24,15 +24,23 @@ active_recordings = {}
 # A global variable for the server thread
 server_thread = None
 
+# In backend_controller.py
+
 def start_data_collection_service(enable_data_collection):
     """Starts the global data collection server if enabled."""
     global server_thread
     if enable_data_collection:
         if server_thread is None or not server_thread.is_alive():
             print("[*] Data collection is enabled. Starting global socket server.")
-            server_thread = threading.Thread(target=start_socket_server)
-            server_thread.daemon = True # Allows main program to exit even if thread is running
-            server_thread.start()
+            try:
+                server_thread = threading.Thread(target=start_socket_server)
+                server_thread.daemon = True
+                server_thread.start()
+                print("[*] Socket server thread started successfully.")
+            except Exception as e:
+                print(f"[!!!] CRITICAL ERROR: Failed to start socket server thread: {e}")
+                # Re-raise the exception so C++ can catch it
+                raise
         else:
             print("[*] Global socket server is already running.")
     else:
