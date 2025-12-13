@@ -42,6 +42,8 @@ public slots:
     void on_actionGitHub_triggered();
     void on_actionInfo_triggered();
     void on_actionSettings_triggered();
+    void on_actionStart_Recording_triggered();
+    void on_actionStop_Recording_triggered();
     void updateProgramStatus();
     void showContextMenu(const QPoint &pos);
     void removeGame();

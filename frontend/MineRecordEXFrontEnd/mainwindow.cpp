@@ -65,9 +65,24 @@ MainWindow::MainWindow(QWidget *parent) :
     contextMenu->addAction(startRecordingAction);
     contextMenu->addAction(stopRecordingAction);
 
+    // Enable context menu on the table
     executableTable->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(executableTable, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showContextMenu(const QPoint &)));
+
+    // --- ADD DEBUG OUTPUT TO VERIFY CONNECTIONS ---
+    qDebug() << "Connecting removeAction->triggered() to removeGame() slot...";
+    connect(removeAction, SIGNAL(triggered()), this, SLOT(removeGame()));
+
+    qDebug() << "Connecting startRecordingAction->triggered() to startRecording() slot...";
+    connect(startRecordingAction, SIGNAL(triggered()), this, SLOT(startRecording()));
+
+    qDebug() << "Connecting stopRecordingAction->triggered() to stopRecording() slot...";
+    connect(stopRecordingAction, SIGNAL(triggered()), this, SLOT(stopRecording()));
+
+    // --- THIS IS THE MISSING LINK ---
+    // Connect the removeAction's triggered signal to the removeGame() slot
+    connect(removeAction, SIGNAL(triggered()), this, SLOT(removeGame()));
 
     loadProgramData();
 
@@ -143,6 +158,7 @@ QString MainWindow::stopPythonRecording(const QString &recordingId)
 // --- Recording Slots ---
 void MainWindow::startRecording()
 {
+    qDebug() << "*** startRecording() SLOT HAS BEEN TRIGGERED ***";
     int currentRow = executableTable->currentRow();
     if (currentRow < 0) {
         QMessageBox::information(this, "No Game Selected", "Please select a game from the list to start recording.");
@@ -323,36 +339,42 @@ void MainWindow::updateProgramStatus()
         if (!nameItem) continue;
 
         QString path = nameItem->data(Qt::UserRole).toString();
-        if (programs.contains(path)) {
-            ProgramInfo *program = programs.value(path, nullptr);
-            if (program) {
-                bool isRunning = detector.isProcessRunning(program->name());
-                if (program->isRunning() != isRunning) {
-                    program->setRunning(isRunning);
-                    QTableWidgetItem *runningItem = executableTable->item(i, 1);
-                    if (runningItem) {
-                        runningItem->setText(isRunning ? "Yes" : "No");
-                        if (isRunning) {
-                            runningItem->setBackground(QBrush(QColor(144, 238, 144)));
-                        } else {
-                            runningItem->setBackground(QBrush(QColor(255, 182, 193)));
-                        }
-                    }
-                }
 
-                QTableWidgetItem *timeItem = executableTable->item(i, 2);
-                if (timeItem) {
-                    timeItem->setText(program->formattedTimePlayed());
-                }
+        // --- CRITICAL FIX: Only proceed if the game is still in our programs map ---
+        if (!programs.contains(path)) {
+            // This game was removed by the user. Skip it.
+            // This is the most important part of the fix.
+            continue;
+        }
 
-                QTableWidgetItem *recordingItem = executableTable->item(i, 3);
-                if (recordingItem) {
-                    recordingItem->setText(program->isRecording() ? "Yes" : "No");
-                    if (program->isRecording()) {
-                        recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
+        ProgramInfo *program = programs.value(path, nullptr);
+        if (program) {
+            bool isRunning = detector.isProcessRunning(program->name());
+            if (program->isRunning() != isRunning) {
+                program->setRunning(isRunning);
+                QTableWidgetItem *runningItem = executableTable->item(i, 1);
+                if (runningItem) {
+                    runningItem->setText(isRunning ? "Yes" : "No");
+                    if (isRunning) {
+                        runningItem->setBackground(QBrush(QColor(144, 238, 144)));
                     } else {
-                        recordingItem->setBackground(QBrush());
+                        runningItem->setBackground(QBrush(QColor(255, 182, 193)));
                     }
+                }
+            }
+
+            QTableWidgetItem *timeItem = executableTable->item(i, 2);
+            if (timeItem) {
+                timeItem->setText(program->formattedTimePlayed());
+            }
+
+            QTableWidgetItem *recordingItem = executableTable->item(i, 3);
+            if (recordingItem) {
+                recordingItem->setText(program->isRecording() ? "Yes" : "No");
+                if (program->isRecording()) {
+                    recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
+                } else {
+                    recordingItem->setBackground(QBrush());
                 }
             }
         }
@@ -365,13 +387,36 @@ void MainWindow::showContextMenu(const QPoint &pos)
     if (item) {
         executableTable->selectRow(item->row());
         QString path = item->data(Qt::UserRole).toString();
-        ProgramInfo *program = programs.value(path, nullptr);
-        if (program) {
-            removeAction->setEnabled(true);
-            startRecordingAction->setEnabled(!program->isRecording());
-            stopRecordingAction->setEnabled(program->isRecording());
-            contextMenu->exec(executableTable->viewport()->mapToGlobal(pos));
+
+        // --- CRITICAL CHECK ---
+        // Is this game even in our programs map? If not, we can't manage it.
+        if (!programs.contains(path)) {
+            qWarning() << "Context menu: Right-clicked on an item not in the programs map. Path:" << path;
+            return; // Do nothing
         }
+
+        ProgramInfo *program = programs.value(path, nullptr);
+        if (!program) {
+            qWarning() << "Context menu: Could not get ProgramInfo for path:" << path;
+            return;
+        }
+
+        // --- FIX: Explicitly enable/disable actions based on program state ---
+        bool isRecording = program->isRecording();
+
+        qDebug() << "Context Menu: Game =" << program->name() << ", Is Recording =" << isRecording;
+
+        removeAction->setEnabled(true); // Always can remove
+
+        if (isRecording) {
+            startRecordingAction->setEnabled(false); // Can't start if already recording
+            stopRecordingAction->setEnabled(true);  // Can stop if already recording
+        } else {
+            startRecordingAction->setEnabled(true);  // Can start if not recording
+            stopRecordingAction->setEnabled(false); // Can't stop if not recording
+        }
+
+        contextMenu->exec(executableTable->viewport()->mapToGlobal(pos));
     }
 }
 
@@ -383,9 +428,13 @@ void MainWindow::removeGame()
         int ret = QMessageBox::question(this, "Remove Game", "Are you sure you want to remove this game from the list?", QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (ret == QMessageBox::Yes) {
             if (programs.contains(path)) {
-                delete programs.take(path);
+                delete programs.take(path); // Removes from map
             }
-            executableTable->removeRow(currentRow);
+            executableTable->removeRow(currentRow); // Removes from table widget
+
+            // --- FIX: Force an immediate UI refresh to prevent the timer from re-adding it ---
+            updateProgramStatus();
+
             saveProgramData();
         }
     }
@@ -510,4 +559,20 @@ void MainWindow::applySettings()
     if (!dir.exists(recordingPath)) {
         dir.mkpath(recordingPath);
     }
+}
+
+void MainWindow::on_actionStart_Recording_triggered()
+{
+    // This slot is called when "File -> Start Recording" is triggered.
+    // We simply call the same logic as the context menu version.
+    qDebug() << "Main menu 'Start Recording' action triggered.";
+    startRecording();
+}
+
+void MainWindow::on_actionStop_Recording_triggered()
+{
+    // This slot is called when "File -> Stop Recording" is triggered.
+    // We simply call the same logic as the context menu version.
+    qDebug() << "Main menu 'Stop Recording' action triggered.";
+    stopRecording();
 }
