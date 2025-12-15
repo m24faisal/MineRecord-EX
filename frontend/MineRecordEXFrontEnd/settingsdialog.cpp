@@ -147,7 +147,7 @@ void SettingsDialog::setupPathSettings()
     QGroupBox *dataCollectionGroup = new QGroupBox("Data Collection", this);
     QVBoxLayout *dataCollectionLayout = new QVBoxLayout(dataCollectionGroup);
 
-    enableDataCollectionCheckBox = new QCheckBox("Enable data collection during recording", this);
+    enableDataCollectionCheckBox = new QCheckBox("Enable data collection", this);
     enableDataCollectionCheckBox->setToolTip("When checked, game data will be collected through receive.py during recording");
 
     dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
