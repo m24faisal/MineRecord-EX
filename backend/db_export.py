@@ -2,6 +2,7 @@
 import psycopg2
 import pandas as pd
 import os
+from dbManage import Database # Use the Database class
 
 def export_player_data_to_csv(player_name, export_path):
     """
@@ -16,7 +17,6 @@ def export_player_data_to_csv(player_name, export_path):
         return None
 
     # --- STEP 2: Ensure Export Directory Exists ---
-    # This is a critical step. If the directory doesn't exist, create it.
     try:
         os.makedirs(export_path, exist_ok=True)
         print(f"[*] Export directory verified/created at: {export_path}")
@@ -24,26 +24,25 @@ def export_player_data_to_csv(player_name, export_path):
         print(f"[EXPORT ERROR] Could not create export directory: {e}")
         return None
 
-    # --- STEP 3: Connect to Database ---
-    try:
-        conn = psycopg2.connect(
-            dbname="playerData",
-            user="postgres",
-            password="your_password", # IMPORTANT: Change this
-            host="localhost",
-            port="5432"
-        )
-        print("[*] Successfully connected to the database.")
-    except psycopg2.OperationalError as e:
-        print(f"[EXPORT ERROR] Could not connect to the database: {e}")
+    # --- STEP 3: Connect to Database and Query Data ---
+    db = Database() # Instantiate the Database class
+    if not db.conn:
+        print("[DB] Could not connect to database. See db_manage.py for errors.")
         return None
 
-    # --- STEP 4: Query Data ---
     try:
+        # The key is to print the EXACT query you are sending.
         query = f"SELECT * FROM player_stats WHERE player_name = '{player_name}'"
         print(f"[*] Executing query: {query}")
-        df = pd.read_sql_query(query, conn)
         
+        df = pd.read_sql_query(query, db.conn)
+        
+        # --- STEP 4: Debug the DataFrame ---
+        # This is the most important debugging step.
+        print(f"[*] DataFrame head:")
+        print(df.head())
+        
+        # Use the correct exception for an empty DataFrame
         if df.empty:
             print(f"[EXPORT WARNING] No data found for player '{player_name}'. A CSV file will not be created.")
             return None
@@ -51,26 +50,26 @@ def export_player_data_to_csv(player_name, export_path):
         print(f"[*] Successfully retrieved {len(df)} rows of data for '{player_name}'.")
         
     except Exception as e:
-        print(f"[EXPORT ERROR] Failed to query the database: {e}")
+        print(f"[DB ERROR] Failed to query the database: {e}")
         return None
     finally:
-        if 'conn' in locals() and conn:
-            conn.close()
+        if db.conn:
+            db.close()
 
     # --- STEP 5: Define Output Path and Save ---
-    # Use os.path.join to create a platform-independent path
     output_filename = f"{player_name}_data.csv"
+    # Use os.path.join to create a platform-independent path
     output_path_full = os.path.join(export_path, output_filename)
     
     print(f"[*] Attempting to save CSV to: {output_path_full}")
 
     try:
         # --- STEP 6: Save to CSV with Error Handling ---
-        # The 'index=False' argument prevents pandas from writing the row index.
+        # The 'index=False' argument prevents pandas from writing a row index.
         df.to_csv(output_path_full, index=False)
         
         # --- STEP 7: Verify File was Actually Created ---
-        # This is the most important check. After to_csv, we verify the file exists.
+        # This is the most important check.
         if os.path.exists(output_path_full):
             print(f"[*] SUCCESS: Data for '{player_name}' successfully exported to '{output_path_full}'.")
             # Return the full, absolute path to C++ so it can show a message box with the correct location.
