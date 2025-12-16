@@ -70,18 +70,30 @@ def stop_recording(recording_id):
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
 
+# ... (rest of the file is the same) ...
+
 def export_player_data(player_name, export_path):
     """Exports all data for a given player from the database to a CSV file."""
-    # This function would now call a separate script or use a library
-    # like pandas to query the DB and save to CSV.
-    print(f"[*] Exporting data for {player_name} to {export_path}")
-    # For now, it's a placeholder.
-    # In a real implementation, you would use psycopg2 to query the database
-    # and pandas to save the result to a CSV file.
-    # Example:
-    # df = pd.read_sql("SELECT * FROM player_stats WHERE player_name = %s", conn, params=(player_name,))
-    # df.to_csv(f"{export_path}/{player_name}_data.csv", index=False)
-    return f"Data for {player_name} exported to {export_path}."
+    print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
+    try:
+        # Ensure export directory exists
+        os.makedirs(export_path, exist_ok=True)
+        
+        from db_export import export_player_data_to_csv
+        result_path = export_player_data_to_csv(player_name, export_path)
+        
+        if result_path:
+            print(f"[*] SUCCESS: Export function returned path: {result_path}")
+            return f"Successfully exported data for {player_name} to {result_path}"
+        else:
+            print(f"[*] FAILURE: Export function returned None.")
+            return f"Failed to export data for {player_name}. No data was found."
+            
+    except Exception as e:
+        # This will now catch ANY error, including import errors
+        print(f"[!!!] CRITICAL ERROR in export_player_data: {e}")
+        traceback.print_exc()
+        return f"Error during export: {str(e)}"
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""

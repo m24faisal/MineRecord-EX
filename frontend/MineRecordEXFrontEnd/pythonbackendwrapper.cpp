@@ -153,11 +153,28 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
 std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName, const std::string& exportPath)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
-    if (!d->isInitialized) return "Error: Python backend is not initialized.";
+    if (!d->isInitialized) {
+        qCritical() << "[WRAPPER] Cannot export: Python backend is not initialized.";
+        return "Error: Python backend is not initialized.";
+    }
+
+    qDebug() << "[WRAPPER] Attempting to export data for player:" << QString::fromStdString(playerName);
+    qDebug() << "[WRAPPER] Export path is:" << QString::fromStdString(exportPath);
+
     try {
+        // The call to Python
         py::object result = d->backend_module.attr("export_player_data")(playerName, exportPath);
-        return result.cast<std::string>();
+
+        // Get the result from Python
+        std::string result_str = result.cast<std::string>();
+
+        qDebug() << "[WRAPPER] Python call returned:" << QString::fromStdString(result_str);
+
+        return result_str;
+
     } catch (const py::error_already_set &e) {
-        return std::string("Python Error: ") + e.what();
+        QString errorMsg = "Python Error: " + QString::fromStdString(e.what());
+        qCritical() << "[WRAPPER] Python exception occurred:" << errorMsg;
+        return errorMsg.toStdString();
     }
 }
