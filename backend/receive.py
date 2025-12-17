@@ -11,6 +11,28 @@ from dbManage import Database
 # This is a simple way to control the server thread from the main thread.
 shutdown_server_event = threading.Event()
 
+# --- FIX: Create a single, global database instance for the server to use ---
+# This is much more efficient than creating a new connection for every request.
+db_instance = None
+
+def initialize_database():
+    """Initializes the global database instance and sets up the database/table."""
+    global db_instance
+    if db_instance is None:
+        print("[SERVER] Initializing global database instance...")
+        db_instance = Database()
+        db_instance.connect()
+        db_instance.setup_database_and_table()
+        print("[SERVER] Database instance is ready.")
+
+def shutdown_database():
+    """Closes the global database connection."""
+    global db_instance
+    if db_instance:
+        print("[SERVER] Shutting down database connection...")
+        db_instance.close()
+        db_instance = None
+
 class GameDataTCPHandler(socketserver.BaseRequestHandler):
     """
     The request handler class for our server.
@@ -43,8 +65,13 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
                 return
             
             print(f"[*] Successfully decrypted data for player: {dataframe_instance.plyrName}")
-            # Save the data to the database
-            Database.save_ddataframe(dataframe_instance)
+            
+            # --- FIX: Use the global database instance to save the data ---
+            # The method name is corrected from save_ddataframe to save_dataframe
+            if db_instance:
+                db_instance.save_dataframe(dataframe_instance)
+            else:
+                print("[!!!] Database instance is not available. Cannot save data.")
             
         except json.JSONDecodeError:
             print(f"[!] Failed to decode JSON from {self.client_address[0]}. Raw data: {data}")
@@ -55,7 +82,6 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
             print(f"[*] Closing connection with {self.client_address[0]}")
             # No explicit close needed here, BaseRequestHandler handles it.
 
-
 def start_socket_server(host='localhost', port=9999):
     """
     Starts the TCP socket server in a blocking call.
@@ -63,8 +89,8 @@ def start_socket_server(host='localhost', port=9999):
     """
     print(f"[*] Starting data collection server on {host}:{port}...")
     
-    # Ensure the database and tables exist
-    Database.create_database()
+    # --- FIX: Initialize the database before starting the server ---
+    initialize_database()
 
     # Create the server, binding to localhost on port 9999
     # Using ThreadingMixIn allows the server to handle multiple connections
@@ -93,6 +119,8 @@ def start_socket_server(host='localhost', port=9999):
     finally:
         print("[*] Closing server socket.")
         server.server_close()
+        # --- FIX: Ensure the database is also shut down cleanly ---
+        shutdown_database()
         print("[*] Server stopped.")
 
 def stop_socket_server():
