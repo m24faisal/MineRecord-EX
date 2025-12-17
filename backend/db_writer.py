@@ -11,9 +11,9 @@ SERVER_PORT = 9999
 # --- Database Configuration ---
 DB_NAME = "playerData"
 DB_USER = "postgres"
-DB_PASS = "your_password" # IMPORTANT: Change this
+DB_PASS = "Faiz256!" # IMPORTANT: Change this
 DB_HOST = "localhost"
-DB_PORT = "5432"
+DB_PORT = "5433"
 
 def get_db_connection():
     """Establishes a connection to the PostgreSQL database."""

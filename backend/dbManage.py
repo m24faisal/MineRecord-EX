@@ -25,9 +25,9 @@ class Database:
             conn = psycopg2.connect(
                 dbname="playerData",
                 user="postgres",
-                password="your_password", # CHANGE THIS
+                password="Faiz256!", # CHANGE THIS
                 host="localhost",
-                port="5432"
+                port="5433"
             )
             print("[*] Database connection successful.")
             # --- DEFENSIVE CHECK: Verify the connection object is valid before returning ---
