@@ -1,20 +1,25 @@
 # backend/backend_controller.py
+import sys
 import os
 import uuid
 import threading
 import traceback
 from datetime import datetime
 
-# Import your recording module
+# Import your existing modules
+from dataFormat import DataSnap
 from screenRecord import start_ffmpeg_process
+from db_export import export_player_data_to_csv
 
-# Global dictionary to track active recordings
+# --- NOTE: This file no longer manages the data server or database directly ---
+# It now calls the functions from db_writer and db_export.
+
 active_recordings = {}
+server_thread = None
+stop_server_event = threading.Event()
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
-    # The 'enable_data_collection' flag is now just for show. The C++ app
-    # handles starting the separate data processes.
     try:
         recording_id = str(uuid.uuid4())
         
@@ -38,9 +43,15 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             "start_time": datetime.now(),
             "status": "active",
             "screen_process": screen_process,
+            "enable_data_collection": enable_data_collection
         }
         
         print(f"[*] Recording started for {game_name} with ID: {recording_id}")
+        if enable_data_collection:
+            print(f"[*] Data is being collected by global server for {game_name}.")
+        else:
+            print(f"[*] Data collection is disabled for {game_name}.")
+        
         return recording_id
         
     except Exception as e:
@@ -56,7 +67,7 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        print(f"[*] Stopping recording for {recording['game_name']}.")
+        print(f"[*] Stopping recording for {recording['game_name']}. Data collection is unaffected.")
 
         # Terminate screen recording process
         screen_process = recording.get("screen_process")
@@ -70,30 +81,16 @@ def stop_recording(recording_id):
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
 
-# ... (rest of the file is the same) ...
-
 def export_player_data(player_name, export_path):
     """Exports all data for a given player from the database to a CSV file."""
-    print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
-    try:
-        # Ensure export directory exists
-        os.makedirs(export_path, exist_ok=True)
-        
-        from db_export import export_player_data_to_csv
-        result_path = export_player_data_to_csv(player_name, export_path)
-        
-        if result_path:
-            print(f"[*] SUCCESS: Export function returned path: {result_path}")
-            return f"Successfully exported data for {player_name} to {result_path}"
-        else:
-            print(f"[*] FAILURE: Export function returned None.")
-            return f"Failed to export data for {player_name}. No data was found."
-            
-    except Exception as e:
-        # This will now catch ANY error, including import errors
-        print(f"[!!!] CRITICAL ERROR in export_player_data: {e}")
-        traceback.print_exc()
-        return f"Error during export: {str(e)}"
+    print(f"[*] Exporting data for {player_name} to {export_path}")
+    # Call the function from our new export script
+    result_path = export_player_data_to_csv(player_name, export_path)
+    
+    if result_path:
+        return f"Successfully exported data for {player_name} to {result_path}"
+    else:
+        return f"Failed to export data for {player_name}. No data was found."
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
@@ -114,6 +111,6 @@ def shutdown_all():
             if screen_process and screen_process.poll() is None:
                 print(f"[*] SHUTDOWN: Terminating FFmpeg for {recording['game_name']}.")
                 screen_process.terminate()
-
+    
     active_recordings.clear()
     print("[*] SHUTDOWN: All recordings have been stopped.")

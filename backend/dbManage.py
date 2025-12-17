@@ -1,4 +1,5 @@
 # backend/dbManage.py
+from .config import DB_CONFIG
 import psycopg2
 import os
 
@@ -11,38 +12,24 @@ class Database:
         print("[DB] Database class initialized. Connection not yet made.")
 
     def connect(self):
-        """Establishes a connection to the PostgreSQL database."""
-        # --- DEFENSIVE CHECK: If we already have a connection, close it first ---
-        if self.conn is not None:
-            print("[DB] Closing existing, potentially stale connection before creating a new one.")
-            try:
-                self.conn.close()
-            except Exception:
-                print("[DB] Error closing stale connection (ignoring).")
-
+        """Establishes a connection to the PostgreSQL database using a DSN."""
+        # --- THE FIX: Build a DSN string from the config dictionary ---
+        # This is the standard, type-safe way to pass parameters.
+        dsn = (
+            f"dbname={DB_CONFIG['database']} "
+            f"user={DB_CONFIG['user']} "
+            f"password={DB_CONFIG['password']} "
+            f"host={DB_CONFIG['host']} "
+            f"port={DB_CONFIG['port']}"
+        )
+        
         try:
-            # IMPORTANT: Change these to your actual database credentials
-            conn = psycopg2.connect(
-                dbname="playerData",
-                user="postgres",
-                password="Faiz256!", # CHANGE THIS
-                host="localhost",
-                port="5433"
-            )
+            self.conn = psycopg2.connect(dsn)
             print("[*] Database connection successful.")
-            # --- DEFENSIVE CHECK: Verify the connection object is valid before returning ---
-            if conn is not None and conn.closed == 0: # 0 means connection is open
-                self.conn = conn # Assign to the instance variable
-                return conn
-            else:
-                print("[!!!] CRITICAL: psycopg2.connect() returned an invalid or closed connection object.")
-                self.conn = None # Ensure we don't store a bad object
-                return None
-                
+            return self.conn
         except psycopg2.OperationalError as e:
             print(f"[!!!] Could not connect to database: {e}")
-            print("[!!!] Please ensure PostgreSQL is running and your credentials in dbManage.py are correct.")
-            self.conn = None
+            print("[!!!] Please ensure PostgreSQL is running and your credentials in config.py are correct.")
             return None
 
     def setup_database_and_table(self):

@@ -3,6 +3,7 @@ import socket
 import threading
 import json
 import sys
+from .config import DB_CONFIG, DATA_SERVER_CONFIG
 
 # --- Configuration ---
 HOST = '127.0.0.1'
@@ -25,15 +26,11 @@ def handle_client(conn, addr):
                 break
             
             try:
-                decoded_data = data.decode('utf-8')
+                decoded_data = json.loads(data.decode('utf-8'))
                 player_info = json.loads(decoded_data)
                 print(f"[DATA BROADCAST] {player_info}")
                 
-                # In a real system, you might add more validation here
-                # For now, we just broadcast it to all writer clients
-                # (We will implement this in the next step)
-
-            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            except (ConnectionResetError, json.JSONDecodeError, UnicodeDecodeError) as e:
                 print(f"[{addr}] Error decoding data: {e}")
 
     except ConnectionResetError:
@@ -64,6 +61,3 @@ def start_server():
         print("\n[*] Server is shutting down.")
     finally:
         server_socket.close()
-
-if __name__ == "__main__":
-    start_server()

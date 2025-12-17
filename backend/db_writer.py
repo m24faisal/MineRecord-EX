@@ -1,42 +1,36 @@
 # backend/db_writer.py
 import socket
-import psycopg2 # pip install psycopg2-binary
+import psycopg2
 import json
 import time
-
-# --- Configuration ---
-SERVER_HOST = '127.0.0.1'
-SERVER_PORT = 9999
-
-# --- Database Configuration ---
-DB_NAME = "playerData"
-DB_USER = "postgres"
-DB_PASS = "Faiz256!" # IMPORTANT: Change this
-DB_HOST = "localhost"
-DB_PORT = "5433"
+from .config import DB_CONFIG, DATA_SERVER_CONFIG
 
 def get_db_connection():
     """Establishes a connection to the PostgreSQL database."""
     try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS,
-            host=DB_HOST,
-            port=DB_PORT
+        dsn = (
+            f"dbname={DB_CONFIG['database']} "
+            f"user={DB_CONFIG['user']} "
+            f"password={DB_CONFIG['password']} "
+            f"host={DB_CONFIG['host']} "
+            f"port={DB_CONFIG['port']}"
         )
+        
+        conn = psycopg2.connect(dsn)
         return conn
     except psycopg2.OperationalError as e:
         print(f"[DB] Could not connect to database: {e}")
         return None
 
 def setup_database():
-    """Creates database and table if they don't exist."""
+    """Creates the database and table if they don't exist."""
+    print("[SETUP] Creating database and table...")
     conn = get_db_connection()
-    if not conn: return
+    if not conn:
+        print("[SETUP ERROR] Could not get a database connection.")
+        return
 
     try:
-        # Create table if it doesn't exist
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS player_stats (
@@ -52,27 +46,26 @@ def setup_database():
             );
         """)
         conn.commit()
-        print("[DB] Database and table are ready.")
+        print("[SETUP] Table 'player_stats' is ready.")
         cursor.close()
-    except psycopg2.Error as e:
-        print(f"[DB ERROR] Setup failed: {e}")
-    finally:
-        if conn:
-            conn.close()
+        return conn
+    except Exception as e:
+        print(f"[SETUP ERROR] An error occurred: {e}")
+        return None
 
 def write_to_database(data):
     """Writes a single data point to the database."""
     conn = get_db_connection()
     if not conn:
+        print("[!!!] Cannot insert data: No database connection.")
         return
 
     try:
         cursor = conn.cursor()
-        # IMPORTANT: Adjust column names and data access to match your JSON structure
         insert_query = """
             INSERT INTO player_stats (player_name, timestamp, x, y, z, health, level, experience)
-            VALUES (%s, %s, %s, %s, %s, %s, %s);
-        """
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+            """
         values = (
             data.get("playerName"),
             data.get("timestamp"),
@@ -89,9 +82,8 @@ def write_to_database(data):
     except psycopg2.Error as e:
         print(f"[DB ERROR] Could not write data: {e}")
     finally:
-        if conn:
+        if cursor:
             cursor.close()
-            conn.close()
 
 def start_writer():
     """Connects to the server and continuously writes received data to the database."""
@@ -99,13 +91,12 @@ def start_writer():
     print("[WRITER] Database writer is starting...")
     
     while True:
+        conn = None
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((SERVER_HOST, SERVER_PORT))
-                print(f"[WRITER] Connected to server at {SERVER_HOST}:{SERVER_PORT}.")
+                s.connect((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']))
+                print(f"[WRITER] Connected to server at {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}.")
                 
-                # This simple writer just connects and receives data in a loop.
-                # A more advanced version could be a proper TCP client that handles disconnections.
                 while True:
                     data = s.recv(4096)
                     if not data:
@@ -121,6 +112,10 @@ def start_writer():
         except ConnectionRefusedError:
             print("[WRITER] Could not connect to server. Retrying in 5 seconds...")
             time.sleep(5)
+        finally:
+            if 's' in locals():
+                s.close()
+                print("[WRITER] Socket closed.")
 
 if __name__ == "__main__":
     start_writer()
