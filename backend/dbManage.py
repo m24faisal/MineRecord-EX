@@ -13,8 +13,11 @@ class Database:
 
     def connect(self):
         """Establishes a connection to the PostgreSQL database using a DSN."""
+        
+        # --- ADD THIS SMOKING GUN ---
+        print(f"[DB CONNECT DEBUG] Attempting to connect with the following config: {DB_CONFIG}")
+
         # --- THE FIX: Build a DSN string from the config dictionary ---
-        # This is the standard, type-safe way to pass parameters.
         dsn = (
             f"dbname={DB_CONFIG['database']} "
             f"user={DB_CONFIG['user']} "
@@ -22,6 +25,9 @@ class Database:
             f"host={DB_CONFIG['host']} "
             f"port={DB_CONFIG['port']}"
         )
+        
+        # --- ALSO PRINT THE FINAL DSN ---
+        print(f"[DB CONNECT DEBUG] Final DSN string is: {dsn}")
         
         try:
             self.conn = psycopg2.connect(dsn)

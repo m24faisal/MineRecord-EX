@@ -7,7 +7,7 @@ DB_CONFIG: Dict[str, Any] = {
     "port": "5433",
     "database": "playerData",
     "user": "postgres",
-    "password": "Faiz256"
+    "password": "Faiz256!"
 }
 
 # --- Data Collection Server Configuration ---
