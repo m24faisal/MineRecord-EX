@@ -1,7 +1,7 @@
 // pythonbackendwrapper.cpp
 #include "pythonbackendwrapper.h"
 
-// --- THIS IS THE CORRECT ORDER ---
+// --- INCLUDES IN THE CORRECT ORDER ---
 // 1. Include pybind11 headers first.
 #include <pybind11/embed.h>
 namespace py = pybind11;
@@ -10,13 +10,13 @@ namespace py = pybind11;
 #include <QDebug>
 #include <QProcess>
 #include <QDir>
+#include <QCoreApplication>
+#include <QFileInfo>
 
 // --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
     py::module backend_module;
     bool isInitialized = false;
-
-    // --- QProcess is now declared here, inside the private struct ---
     QProcess* serverProcess;
 };
 
@@ -34,10 +34,27 @@ PythonBackendWrapper::~PythonBackendWrapper()
 void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
-    QDir::setCurrent(QDir::currentPath());
+
     try {
-        // Add the 'backend' directory to Python's path
-        py::exec("import sys; sys.path.append('./backend')");
+        // --- THE FIX: USE AN ABSOLUTE PATH TO THE BACKEND FOLDER ---
+        // Get the path of the current executable
+        QFileInfo exeInfo(QCoreApplication::applicationFilePath());
+        QString exePath = exeInfo.absolutePath();
+
+        // Go up one directory to the project root
+        QDir projectRoot = exeInfo.absoluteDir();
+        projectRoot.cdUp();
+
+        // Construct an absolute path to the backend directory
+        QString backendPath = projectRoot.absoluteFilePath("debug/backend");
+
+        // --- DEBUGGING: PRINT THE PATHS TO VERIFY ---
+        qDebug() << "Project Root:" << projectRoot.absolutePath();
+        qDebug() << "Backend Path:" << backendPath;
+
+        // Add the absolute backend path to Python's sys.path
+        py::exec("import sys; sys.path.append('" + backendPath.toStdString() + "')");
+
         // Import the main controller module
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
@@ -77,10 +94,29 @@ void PythonBackendWrapper::startDataService()
         return;
     }
 
-    // --- Start the Standalone Data Receiver Server ---
+    // --- START THE STANDALONE DATA RECEIVER SERVER ---
     // This process will run the data_receiver.py script
     d->serverProcess = new QProcess();
-    QString serverScript = QDir::currentPath() + "/backend/data_receiver.py";
+
+    // --- FIX: DECLARE backendPath LOCALLY ---
+    QString backendPath;
+    {
+        // Get the path of the current executable
+        QFileInfo exeInfo(QCoreApplication::applicationFilePath());
+        QString exePath = exeInfo.absolutePath();
+
+        // Go up one directory to the project root
+        QDir projectRoot = exeInfo.absoluteDir();
+        projectRoot.cdUp();
+
+        // Construct an absolute path to the backend directory
+        backendPath = projectRoot.absoluteFilePath("backend");
+
+        qDebug() << "Project Root:" << projectRoot.absolutePath();
+        qDebug() << "Backend Path:" << backendPath;
+    }
+
+    QString serverScript = backendPath + "/data_receiver.py"; // Use the local backendPath
 
     qDebug() << "Starting server process with script:" << serverScript;
     d->serverProcess->start("python", QStringList() << serverScript);
