@@ -3,8 +3,8 @@ import socketserver
 import threading
 import traceback
 import json
-from .config import DATA_SERVER_CONFIG
-from .database import Database
+from config import DATA_SERVER_CONFIG
+from database import Database
 
 # --- Global variables for server management ---
 shutdown_server_event = threading.Event()

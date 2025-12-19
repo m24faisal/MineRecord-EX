@@ -2,7 +2,7 @@
 import psycopg2
 import pandas as pd
 import os
-from .config import DB_CONFIG
+from config import DB_CONFIG
 
 class Database:
     """A unified class to manage all PostgreSQL database operations."""
