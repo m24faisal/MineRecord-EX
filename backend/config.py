@@ -12,6 +12,6 @@ DB_CONFIG: Dict[str, Any] = {
 
 # --- Data Collection Server Configuration ---
 DATA_SERVER_CONFIG: Dict[str, Any] = {
-    "host": "127.0.0.1",
+    "host": "localhost",
     "port": "9999"
 }

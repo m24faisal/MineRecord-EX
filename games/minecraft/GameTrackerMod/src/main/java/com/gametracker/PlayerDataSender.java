@@ -39,7 +39,7 @@ public class PlayerDataSender {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     // --- Configuration ---
-    private static final String PYTHON_SERVER_HOST = "127.0.0.1";
+    private static final String PYTHON_SERVER_HOST = "localhost";
     private static final int PYTHON_SERVER_PORT = 9999;
     // ---------------------
 
