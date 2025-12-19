@@ -9,7 +9,7 @@ import pandas as pd
 
 # Import your existing modules
 from screenRecord import start_ffmpeg_process
-from .database import Database
+from database import Database
 
 # --- NOTE: This file no longer manages the data server or database directly ---
 # It now calls the functions from the new, unified scripts.
