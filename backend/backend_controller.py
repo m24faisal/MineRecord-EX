@@ -81,7 +81,7 @@ def stop_recording(recording_id):
 
 def export_player_data(player_name, export_path):
     """
-    Fetches data for a player using the Database class and exports it to a CSV file.
+    Fetches detailed data for a player using the Database class and exports it to a CSV file.
     This function handles the CSV creation logic.
     """
     print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
@@ -93,13 +93,13 @@ def export_player_data(player_name, export_path):
     if not db.connect():
         return "Error: Could not connect to the database."
     
-    # Fetch the raw data using the new method in the Database class
-    raw_data = db.get_all_player_data(player_name)
+    # --- CHANGE: Fetch the raw data using the NEW detailed method ---
+    raw_data = db.get_all_detailed_player_data(player_name)
     
     # Close the connection
     db.close()
 
-    # --- CSV EXPORT LOGIC IS NOW HERE ---
+    # --- CSV EXPORT LOGIC ---
     if not raw_data:
         return f"Info: No data found for player '{player_name}'."
         
@@ -110,14 +110,17 @@ def export_player_data(player_name, export_path):
         os.makedirs(export_path, exist_ok=True)
         
         # Create a pandas DataFrame from the raw data
-        # The column names must match the order returned by the DB query
+        # --- CHANGE: The column names must match the detailed table ---
         df = pd.DataFrame(raw_data, columns=[
-            'player_name', 'timestamp', 'x', 'y', 'z', 'health', 'level', 'experience'
+            'player_name', 'timestamp', 'fps', 'plyrLocation', 'plyrHealth', 'plyrInventory', 
+            'plyrArmor', 'plyrOffhand', 'plyrStatus', 'plyrHunger', 'plyrSat', 
+            'plyrView', 'plyrFacing', 'plyrSelectedSlot', 'plyrSelectedItem', 
+            'plyrRideState', 'plyrRideVehicle', 'plyrMomentum'
         ])
         
         # Create a unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_filename = f"{player_name}_data_{timestamp}.csv"
+        output_filename = f"{player_name}_detailed_data_{timestamp}.csv"
         output_path_full = os.path.join(export_path, output_filename)
         
         # Save the DataFrame to a CSV file
@@ -125,7 +128,7 @@ def export_player_data(player_name, export_path):
         
         # Verify the file was created
         if os.path.exists(output_path_full):
-            success_msg = f"Successfully exported data for {player_name} to {output_path_full}"
+            success_msg = f"Successfully exported detailed data for {player_name} to {output_path_full}"
             print(f"[*] SUCCESS: {success_msg}")
             return success_msg
         else:
