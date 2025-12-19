@@ -4,7 +4,7 @@ from typing import Dict, Any
 # --- Database Configuration ---
 DB_CONFIG: Dict[str, Any] = {
     "host": "localhost",
-    "port": "5433",
+    "port": "5432",
     "database": "playerData",
     "user": "postgres",
     "password": "Faiz256!"

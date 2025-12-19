@@ -95,7 +95,7 @@ def export_player_data(player_name, export_path):
     # --- HARDCODED CONNECTION STRING TO BYPASS ALL CONFIG FILES ---
     # This is the only way to be 100% sure what port we are using.
     # I am using your correct credentials here.
-    conn_string = "dbname='playerData' user='postgres' password='Faiz256!' host='localhost' port=5433"
+    conn_string = "dbname='playerData' user='postgres' password='Faiz256!' host='localhost' port=5432"
     print(f"[*] Attempting to connect with hardcoded string: {conn_string}")
 
     conn = None
