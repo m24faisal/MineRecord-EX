@@ -37,15 +37,11 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
             if not data:
                 print(f"[*] No data received from {self.client_address[0]}. Closing connection.")
                 return
-
             print(f"[*] Received {len(data)} bytes from {self.client_address[0]}")
-
             # --- Parse the JSON from Java ---
             data_dict = json.loads(data.decode('utf-8'))
-            
             player_name = data_dict.get("plyrName", "Unknown")
             print(f"[*] Successfully processed data for player: {player_name}")
-            
             # --- Create the final data dictionary that the database expects ---
             # This now includes EVERY field from your Java application.
             db_data = {
@@ -73,14 +69,12 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
                 "plyrRideVehicle": data_dict.get("plyrRideVehicle"),
                 "plyrMomentum": data_dict.get("plyrMomentum")
             }
-            
             # --- Save the FULL data to the database ---
             if db_instance:
                 db_instance.insert_detailed_data(player_name, db_data)
                 print(f"[HEARTBEAT] SUCCESS: All data for player '{player_name}' saved to detailed database.")
             else:
                 print("[!!!] Database instance is not available. Cannot save data.")
-            
         except json.JSONDecodeError:
             print(f"[!] Failed to decode JSON from {self.client_address[0]}. Raw data: {data}")
         except Exception as e:
@@ -93,19 +87,15 @@ def start_socket_server():
     """Starts the TCP socket server in a blocking call."""
     print(f"[*] Starting data collection server on {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}...")
     initialize_database()
-    
     server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
-
     def server_shutdown_checker():
         while not shutdown_server_event.is_set():
             shutdown_server_event.wait(1)
         print("[*] Shutdown event received. Shutting down server...")
         server.shutdown()
-
     shutdown_thread = threading.Thread(target=server_shutdown_checker)
     shutdown_thread.daemon = True
     shutdown_thread.start()
-
     try:
         server.serve_forever()
     except (KeyboardInterrupt, SystemExit):

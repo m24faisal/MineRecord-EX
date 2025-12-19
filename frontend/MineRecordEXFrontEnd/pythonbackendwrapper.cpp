@@ -1,60 +1,48 @@
 // pythonbackendwrapper.cpp
 #include "pythonbackendwrapper.h"
-
 // --- INCLUDES IN THE CORRECT ORDER ---
 // 1. Include pybind11 headers first.
 #include <pybind11/embed.h>
 namespace py = pybind11;
-
 // 2. THEN include Qt headers.
 #include <QDebug>
 #include <QProcess>
 #include <QDir>
 #include <QCoreApplication>
 #include <QFileInfo>
-
 // --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
     py::module backend_module;
     bool isInitialized = false;
     QProcess* serverProcess;
 };
-
 PythonBackendWrapper::PythonBackendWrapper()
     : d_ptr(new PythonBackendWrapperPrivate())
 {
 }
-
 PythonBackendWrapper::~PythonBackendWrapper()
 {
     shutdown();
     delete d_ptr;
 }
-
 void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
-
     try {
         // --- THE FIX: USE AN ABSOLUTE PATH TO THE BACKEND FOLDER ---
         // Get the path of the current executable
         QFileInfo exeInfo(QCoreApplication::applicationFilePath());
         QString exePath = exeInfo.absolutePath();
-
         // Go up one directory to the project root
         QDir projectRoot = exeInfo.absoluteDir();
         projectRoot.cdUp();
-
         // Construct an absolute path to the backend directory
         QString backendPath = projectRoot.absoluteFilePath("debug/backend");
-
         // --- DEBUGGING: PRINT THE PATHS TO VERIFY ---
         qDebug() << "Project Root:" << projectRoot.absolutePath();
         qDebug() << "Backend Path:" << backendPath;
-
         // Add the absolute backend path to Python's sys.path
         py::exec("import sys; sys.path.append('" + backendPath.toStdString() + "')");
-
         // Import the main controller module
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
@@ -64,7 +52,6 @@ void PythonBackendWrapper::initialize()
         d->isInitialized = false;
     }
 }
-
 void PythonBackendWrapper::shutdown()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -80,7 +67,6 @@ void PythonBackendWrapper::shutdown()
     }
     d->isInitialized = false;
 }
-
 void PythonBackendWrapper::startDataService()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -93,34 +79,26 @@ void PythonBackendWrapper::startDataService()
         qDebug() << "Data collection server is already running.";
         return;
     }
-
     // --- START THE STANDALONE DATA RECEIVER SERVER ---
     // This process will run the data_receiver.py script
     d->serverProcess = new QProcess();
-
     // --- FIX: DECLARE backendPath LOCALLY ---
     QString backendPath;
     {
         // Get the path of the current executable
         QFileInfo exeInfo(QCoreApplication::applicationFilePath());
         QString exePath = exeInfo.absolutePath();
-
         // Go up one directory to the project root
         QDir projectRoot = exeInfo.absoluteDir();
         projectRoot.cdUp();
-
         // Construct an absolute path to the backend directory
-        backendPath = projectRoot.absoluteFilePath("backend");
-
+        backendPath = projectRoot.absoluteFilePath("debug/backend");
         qDebug() << "Project Root:" << projectRoot.absolutePath();
         qDebug() << "Backend Path:" << backendPath;
     }
-
     QString serverScript = backendPath + "/data_receiver.py"; // Use the local backendPath
-
     qDebug() << "Starting server process with script:" << serverScript;
     d->serverProcess->start("python", QStringList() << serverScript);
-
     if (!d->serverProcess->waitForStarted()) {
         qCritical() << "Failed to start server process:" << d->serverProcess->errorString();
         delete d->serverProcess;
@@ -129,7 +107,6 @@ void PythonBackendWrapper::startDataService()
     }
     qDebug() << "Data Receiver Server process started with PID:" << d->serverProcess->processId();
 }
-
 void PythonBackendWrapper::stopDataService()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -147,7 +124,6 @@ void PythonBackendWrapper::stopDataService()
     }
     qDebug() << "Data Receiver Server process stopped.";
 }
-
 std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath, const std::string& recordingPath, bool enableDataCollection)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -160,7 +136,6 @@ std::string PythonBackendWrapper::startRecording(const std::string& gameName, co
         return std::string("Python Error: ") + e.what();
     }
 }
-
 std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -173,7 +148,6 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
         return std::string("Python Error: ") + e.what();
     }
 }
-
 std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName, const std::string& exportPath)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -181,15 +155,12 @@ std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName
         qCritical() << "[WRAPPER] Cannot export: Python backend is not initialized.";
         return "Error: Python backend is not initialized.";
     }
-
     qDebug() << "[WRAPPER] Attempting to export data for player:" << QString::fromStdString(playerName);
     qDebug() << "[WRAPPER] Export path is:" << QString::fromStdString(exportPath);
-
     try {
         // Call the export_player_data function in the backend controller
         py::object result = d->backend_module.attr("export_player_data")(playerName, exportPath);
         std::string result_str = result.cast<std::string>();
-
         qDebug() << "[WRAPPER] Python call returned:" << QString::fromStdString(result_str);
         return result_str;
     } catch (const py::error_already_set &e) {
