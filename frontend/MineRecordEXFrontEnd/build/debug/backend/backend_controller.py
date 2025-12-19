@@ -1,20 +1,25 @@
 # backend/backend_controller.py
+import sys
 import os
 import uuid
 import threading
 import traceback
 from datetime import datetime
+import pandas as pd
 
-# Import your recording module
+# Import your existing modules
 from screenRecord import start_ffmpeg_process
+from .database import Database
 
-# Global dictionary to track active recordings
+# --- NOTE: This file no longer manages the data server or database directly ---
+# It now calls the functions from the new, unified scripts.
+
 active_recordings = {}
+server_thread = None
+stop_server_event = threading.Event()
 
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start recording game data and screen. Called from C++."""
-    # The 'enable_data_collection' flag is now just for show. The C++ app
-    # handles starting the separate data processes.
     try:
         recording_id = str(uuid.uuid4())
         
@@ -25,7 +30,6 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
         video_filename = f"{game_name}_{timestamp}.mp4"
         video_path = os.path.join(recording_dir, video_filename)
         
-        # Launch screen recording
         screen_process = start_ffmpeg_process(video_path)
         if not screen_process:
             return f"Error: Failed to start FFmpeg process."
@@ -38,9 +42,15 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
             "start_time": datetime.now(),
             "status": "active",
             "screen_process": screen_process,
+            "enable_data_collection": enable_data_collection
         }
         
         print(f"[*] Recording started for {game_name} with ID: {recording_id}")
+        if enable_data_collection:
+            print(f"[*] Data is being collected by global server for {game_name}.")
+        else:
+            print(f"[*] Data collection is disabled for {game_name}.")
+        
         return recording_id
         
     except Exception as e:
@@ -56,9 +66,8 @@ def stop_recording(recording_id):
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
         
-        print(f"[*] Stopping recording for {recording['game_name']}.")
+        print(f"[*] Stopping recording for {recording['game_name']}. Data collection is unaffected.")
 
-        # Terminate screen recording process
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
             print(f"[*] Stopping screen recording for {recording['game_name']}...")
@@ -70,30 +79,67 @@ def stop_recording(recording_id):
     except Exception as e:
         return f"Error: Failed to stop recording: {str(e)}"
 
-# ... (rest of the file is the same) ...
-
 def export_player_data(player_name, export_path):
-    """Exports all data for a given player from the database to a CSV file."""
+    """
+    Fetches detailed data for a player using the Database class and exports it to a CSV file.
+    This function handles the CSV creation logic.
+    """
     print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
+    
+    # Create a temporary database instance for this operation
+    db = Database()
+    
+    # Connect to the database
+    if not db.connect():
+        return "Error: Could not connect to the database."
+    
+    # --- CHANGE: Fetch the raw data using the NEW detailed method ---
+    raw_data = db.get_all_detailed_player_data(player_name)
+    
+    # Close the connection
+    db.close()
+
+    # --- CSV EXPORT LOGIC ---
+    if not raw_data:
+        return f"Info: No data found for player '{player_name}'."
+        
+    print(f"[*] Successfully retrieved {len(raw_data)} rows of data for '{player_name}'.")
+    
     try:
-        # Ensure export directory exists
+        # Ensure the export directory exists
         os.makedirs(export_path, exist_ok=True)
         
-        from db_export import export_player_data_to_csv
-        result_path = export_player_data_to_csv(player_name, export_path)
+        # Create a pandas DataFrame from the raw data
+        # --- CHANGE: The column names must match the detailed table ---
+        df = pd.DataFrame(raw_data, columns=[
+            'player_name', 'timestamp', 'fps', 'plyrLocation', 'plyrHealth', 'plyrInventory', 
+            'plyrArmor', 'plyrOffhand', 'plyrStatus', 'plyrHunger', 'plyrSat', 
+            'plyrView', 'plyrFacing', 'plyrSelectedSlot', 'plyrSelectedItem', 
+            'plyrRideState', 'plyrRideVehicle', 'plyrMomentum'
+        ])
         
-        if result_path:
-            print(f"[*] SUCCESS: Export function returned path: {result_path}")
-            return f"Successfully exported data for {player_name} to {result_path}"
+        # Create a unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"{player_name}_detailed_data_{timestamp}.csv"
+        output_path_full = os.path.join(export_path, output_filename)
+        
+        # Save the DataFrame to a CSV file
+        df.to_csv(output_path_full, index=False)
+        
+        # Verify the file was created
+        if os.path.exists(output_path_full):
+            success_msg = f"Successfully exported detailed data for {player_name} to {output_path_full}"
+            print(f"[*] SUCCESS: {success_msg}")
+            return success_msg
         else:
-            print(f"[*] FAILURE: Export function returned None.")
-            return f"Failed to export data for {player_name}. No data was found."
+            error_msg = f"Error: CSV file not found after save operation. Expected at: {output_path_full}"
+            print(f"[EXPORT CRITICAL ERROR: {error_msg}")
+            return error_msg
             
     except Exception as e:
-        # This will now catch ANY error, including import errors
-        print(f"[!!!] CRITICAL ERROR in export_player_data: {e}")
-        traceback.print_exc()
-        return f"Error during export: {str(e)}"
+        error_msg = f"Error: An unexpected error occurred while saving CSV: {e}"
+        print(f"[EXPORT CRITICAL ERROR: {error_msg}")
+        return error_msg
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
@@ -114,6 +160,6 @@ def shutdown_all():
             if screen_process and screen_process.poll() is None:
                 print(f"[*] SHUTDOWN: Terminating FFmpeg for {recording['game_name']}.")
                 screen_process.terminate()
-
+    
     active_recordings.clear()
     print("[*] SHUTDOWN: All recordings have been stopped.")

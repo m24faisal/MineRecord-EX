@@ -34,6 +34,7 @@ PythonBackendWrapper::~PythonBackendWrapper()
 void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
+    QDir::setCurrent(QDir::currentPath());
     try {
         // Add the 'backend' directory to Python's path
         py::exec("import sys; sys.path.append('./backend')");
