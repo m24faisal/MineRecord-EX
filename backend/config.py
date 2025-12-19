@@ -4,10 +4,10 @@ from typing import Dict, Any
 # --- Database Configuration ---
 DB_CONFIG: Dict[str, Any] = {
     "host": "localhost",
-    "port": "5432",
+    "port": "5433",
     "database": "playerData",
     "user": "postgres",
-    "password": "a"
+    "password": "Faiz256"
 }
 
 # --- Data Collection Server Configuration ---

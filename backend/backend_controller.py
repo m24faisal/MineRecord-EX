@@ -1,4 +1,4 @@
-## backend/backend_controller.py
+# backend/backend_controller.py
 import sys
 import os
 import uuid
@@ -6,17 +6,13 @@ import threading
 import traceback
 from datetime import datetime
 import pandas as pd
-import psycopg2 # <-- IMPORTANT: IMPORT DIRECTLY
 
 # Import your existing modules
-from dataFormat import DataSnap
 from screenRecord import start_ffmpeg_process
-# Import the global database instance directly
-from .receive import db_instance
-from db_export import export_player_data_to_csv
+from .database import Database
 
 # --- NOTE: This file no longer manages the data server or database directly ---
-# It now calls the functions from db_writer and db_export.
+# It now calls the functions from the new, unified scripts.
 
 active_recordings = {}
 server_thread = None
@@ -34,7 +30,6 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
         video_filename = f"{game_name}_{timestamp}.mp4"
         video_path = os.path.join(recording_dir, video_filename)
         
-        # Launch screen recording
         screen_process = start_ffmpeg_process(video_path)
         if not screen_process:
             return f"Error: Failed to start FFmpeg process."
@@ -73,7 +68,6 @@ def stop_recording(recording_id):
         
         print(f"[*] Stopping recording for {recording['game_name']}. Data collection is unaffected.")
 
-        # Terminate screen recording process
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
             print(f"[*] Stopping screen recording for {recording['game_name']}...")
@@ -87,48 +81,62 @@ def stop_recording(recording_id):
 
 def export_player_data(player_name, export_path):
     """
-    A direct, no-nonsense export function to bypass all caching issues.
+    Fetches data for a player using the Database class and exports it to a CSV file.
+    This function handles the CSV creation logic.
     """
-    print(f"[*] --- DIRECT EXPORT FUNCTION CALLED ---")
-    print(f"[*] Player: {player_name}, Path: {export_path}")
+    print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
+    
+    # Create a temporary database instance for this operation
+    db = Database()
+    
+    # Connect to the database
+    if not db.connect():
+        return "Error: Could not connect to the database."
+    
+    # Fetch the raw data using the new method in the Database class
+    raw_data = db.get_all_player_data(player_name)
+    
+    # Close the connection
+    db.close()
 
-    # --- HARDCODED CONNECTION STRING TO BYPASS ALL CONFIG FILES ---
-    # This is the only way to be 100% sure what port we are using.
-    # I am using your correct credentials here.
-    conn_string = "dbname='playerData' user='postgres' password='a' host='localhost' port=5432"
-    print(f"[*] Attempting to connect with hardcoded string: {conn_string}")
-
-    conn = None
+    # --- CSV EXPORT LOGIC IS NOW HERE ---
+    if not raw_data:
+        return f"Info: No data found for player '{player_name}'."
+        
+    print(f"[*] Successfully retrieved {len(raw_data)} rows of data for '{player_name}'.")
+    
     try:
-        # This is the ONLY line that can generate that error message.
-        conn = psycopg2.connect(conn_string)
-        print("[*] CONNECTION SUCCESSFUL!")
-
-        # If we get here, the connection worked. Now do the export.
-        query = "SELECT * FROM player_stats WHERE player_name = %s"
-        df = pd.read_sql_query(query, conn, params=(player_name,))
-
-        if df.empty:
-            return "Info: No data found for player."
-        
-        # Save to CSV
+        # Ensure the export directory exists
         os.makedirs(export_path, exist_ok=True)
-        output_path = os.path.join(export_path, f"{player_name}_data.csv")
-        df.to_csv(output_path, index=False)
         
-        return f"Success: Exported data to {output_path}"
-
-    except psycopg2.OperationalError as e:
-        # THIS is the block that will catch the error.
-        print(f"[!!!] DIRECT CONNECTION FAILED: {e}")
-        return f"Error: Could not connect to database. Details: {e}"
+        # Create a pandas DataFrame from the raw data
+        # The column names must match the order returned by the DB query
+        df = pd.DataFrame(raw_data, columns=[
+            'player_name', 'timestamp', 'x', 'y', 'z', 'health', 'level', 'experience'
+        ])
+        
+        # Create a unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"{player_name}_data_{timestamp}.csv"
+        output_path_full = os.path.join(export_path, output_filename)
+        
+        # Save the DataFrame to a CSV file
+        df.to_csv(output_path_full, index=False)
+        
+        # Verify the file was created
+        if os.path.exists(output_path_full):
+            success_msg = f"Successfully exported data for {player_name} to {output_path_full}"
+            print(f"[*] SUCCESS: {success_msg}")
+            return success_msg
+        else:
+            error_msg = f"Error: CSV file not found after save operation. Expected at: {output_path_full}"
+            print(f"[EXPORT CRITICAL ERROR: {error_msg}")
+            return error_msg
+            
     except Exception as e:
-        print(f"[!!!] An unexpected error occurred: {e}")
-        return f"Error: An unexpected error occurred. Details: {e}"
-    finally:
-        if conn:
-            conn.close()
-            print("[*] Connection closed.")
+        error_msg = f"Error: An unexpected error occurred while saving CSV: {e}"
+        print(f"[EXPORT CRITICAL ERROR: {error_msg}")
+        return error_msg
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""

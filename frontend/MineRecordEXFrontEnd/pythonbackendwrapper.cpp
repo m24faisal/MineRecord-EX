@@ -1,3 +1,4 @@
+// pythonbackendwrapper.cpp
 #include "pythonbackendwrapper.h"
 
 // --- THIS IS THE CORRECT ORDER ---
@@ -17,7 +18,6 @@ struct PythonBackendWrapperPrivate {
 
     // --- QProcess is now declared here, inside the private struct ---
     QProcess* serverProcess;
-    QProcess* writerProcess;
 };
 
 PythonBackendWrapper::PythonBackendWrapper()
@@ -35,7 +35,9 @@ void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     try {
+        // Add the 'backend' directory to Python's path
         py::exec("import sys; sys.path.append('./backend')");
+        // Import the main controller module
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
         qDebug() << "SUCCESS: Python backend initialized via wrapper.";
@@ -52,6 +54,7 @@ void PythonBackendWrapper::shutdown()
         return;
     }
     try {
+        // Call the shutdown_all function in the backend controller
         d->backend_module.attr("shutdown_all")();
         qDebug() << "SUCCESS: Python backend shutdown via wrapper.";
     } catch (const py::error_already_set &e) {
@@ -67,63 +70,45 @@ void PythonBackendWrapper::startDataService()
         qCritical() << "Cannot start service: Python backend not initialized.";
         return;
     }
+    // Check if the server process is already running
     if (d->serverProcess && d->serverProcess->state() == QProcess::Running) {
-        qDebug() << "Data collection processes are already running.";
+        qDebug() << "Data collection server is already running.";
         return;
     }
 
-    // --- Start the Standalone Server ---
+    // --- Start the Standalone Data Receiver Server ---
+    // This process will run the data_receiver.py script
     d->serverProcess = new QProcess();
-    QString serverScript = QDir::currentPath() + "/backend/data_receiver_server.py";
+    QString serverScript = QDir::currentPath() + "/backend/data_receiver.py";
+
+    qDebug() << "Starting server process with script:" << serverScript;
     d->serverProcess->start("python", QStringList() << serverScript);
+
     if (!d->serverProcess->waitForStarted()) {
         qCritical() << "Failed to start server process:" << d->serverProcess->errorString();
         delete d->serverProcess;
         d->serverProcess = nullptr;
         return;
     }
-    qDebug() << "Standalone Server process started with PID:" << d->serverProcess->processId();
-
-    // --- Start the Database Writer ---
-    d->writerProcess = new QProcess();
-    QString writerScript = QDir::currentPath() + "/backend/db_writer.py";
-    d->writerProcess->start("python", QStringList() << writerScript);
-    if (!d->writerProcess->waitForStarted()) {
-        qCritical() << "Failed to start writer process:" << d->writerProcess->errorString();
-        delete d->writerProcess;
-        d->writerProcess = nullptr;
-        // If writer fails, we should stop the server too
-        if(d->serverProcess) { d->serverProcess->kill(); d->serverProcess->waitForFinished(); delete d->serverProcess; d->serverProcess = nullptr; }
-        return;
-    }
-    qDebug() << "Database Writer process started with PID:" << d->writerProcess->processId();
+    qDebug() << "Data Receiver Server process started with PID:" << d->serverProcess->processId();
 }
 
 void PythonBackendWrapper::stopDataService()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (d->serverProcess) {
-        qDebug() << "Stopping server process...";
+        qDebug() << "Stopping data receiver server process...";
         d->serverProcess->terminate();
+        // Give it some time to close gracefully
         if (!d->serverProcess->waitForFinished(5000)) {
+            qDebug() << "Server did not terminate, killing it.";
             d->serverProcess->kill();
             d->serverProcess->waitForFinished();
         }
         delete d->serverProcess;
         d->serverProcess = nullptr;
     }
-
-    if (d->writerProcess) {
-        qDebug() << "Stopping writer process...";
-        d->writerProcess->terminate();
-        if (!d->writerProcess->waitForFinished(5000)) {
-            d->writerProcess->kill();
-            d->writerProcess->waitForFinished();
-        }
-        delete d->writerProcess;
-        d->writerProcess = nullptr;
-    }
-    qDebug() << "Data collection processes stopped.";
+    qDebug() << "Data Receiver Server process stopped.";
 }
 
 std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath, const std::string& recordingPath, bool enableDataCollection)
@@ -131,6 +116,7 @@ std::string PythonBackendWrapper::startRecording(const std::string& gameName, co
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) return "Error: Python backend is not initialized.";
     try {
+        // Call the start_recording function in the backend controller
         py::object result = d->backend_module.attr("start_recording")(gameName, gamePath, recordingPath, enableDataCollection);
         return result.cast<std::string>();
     } catch (const py::error_already_set &e) {
@@ -143,6 +129,7 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) return "Error: Python backend is not initialized.";
     try {
+        // Call the stop_recording function in the backend controller
         py::object result = d->backend_module.attr("stop_recording")(recordingId);
         return result.cast<std::string>();
     } catch (const py::error_already_set &e) {
@@ -162,16 +149,12 @@ std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName
     qDebug() << "[WRAPPER] Export path is:" << QString::fromStdString(exportPath);
 
     try {
-        // The call to Python
+        // Call the export_player_data function in the backend controller
         py::object result = d->backend_module.attr("export_player_data")(playerName, exportPath);
-
-        // Get the result from Python
         std::string result_str = result.cast<std::string>();
 
         qDebug() << "[WRAPPER] Python call returned:" << QString::fromStdString(result_str);
-
         return result_str;
-
     } catch (const py::error_already_set &e) {
         QString errorMsg = "Python Error: " + QString::fromStdString(e.what());
         qCritical() << "[WRAPPER] Python exception occurred:" << errorMsg;
