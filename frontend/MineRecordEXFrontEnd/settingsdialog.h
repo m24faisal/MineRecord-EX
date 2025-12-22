@@ -41,6 +41,7 @@ private:
     void setupUI();
     void setupGeneralSettings();
     void setupPathSettings();
+    void setupDbSettings();
     void loadSettings();
     void saveSettings();
     void applySettings();
@@ -77,6 +78,11 @@ private:
     QString recordingPath;
     QString exportPath;
     bool enableDataCollection;
+
+    // DB settings widgets
+    QWidget *dbSettingsWidget;
+    QLineEdit *dbUsernameEdit;
+    QLineEdit *dbPasswordEdit;
 
     // Store the function passed from MainWindow
     std::function<QString(const QString&, const QString&)> m_exportDataFunction;

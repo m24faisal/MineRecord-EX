@@ -11,6 +11,8 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QInputDialog>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 SettingsDialog::SettingsDialog(QWidget *parent, std::function<QString(const QString&, const QString&)> exportFunc)
     : QDialog(parent),
@@ -37,6 +39,7 @@ void SettingsDialog::setupUI()
     categoryList = new QListWidget(this);
     categoryList->addItem("General");
     categoryList->addItem("Paths");
+    categoryList->addItem("DB Settings");
     categoryList->setCurrentRow(0);
     categoryList->setMaximumWidth(150);
 
@@ -46,10 +49,12 @@ void SettingsDialog::setupUI()
     // Setup settings pages
     setupGeneralSettings();
     setupPathSettings();
+    setupDbSettings();
 
     // Add pages to stacked widget
     stackedWidget->addWidget(generalSettingsWidget);
     stackedWidget->addWidget(pathSettingsWidget);
+    stackedWidget->addWidget(dbSettingsWidget);
 
     // Create buttons
     okButton = new QPushButton("OK", this);
@@ -164,9 +169,27 @@ void SettingsDialog::setupPathSettings()
     layout->addStretch();
 }
 
+void SettingsDialog::setupDbSettings()
+{
+    dbSettingsWidget = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(dbSettingsWidget);
+
+    QGroupBox *dbGroup = new QGroupBox("PostgreSQL Database Credentials", this);
+    QFormLayout *formLayout = new QFormLayout(dbGroup);
+
+    dbUsernameEdit = new QLineEdit(this);
+    dbPasswordEdit = new QLineEdit(this);
+    dbPasswordEdit->setEchoMode(QLineEdit::Password); // Mask password
+
+    formLayout->addRow("Username:", dbUsernameEdit);
+    formLayout->addRow("Password:", dbPasswordEdit);
+
+    layout->addWidget(dbGroup);
+    layout->addStretch();
+}
+
 void SettingsDialog::loadSettings()
 {
-    // Load settings from QSettings
     QSettings settings("YourCompany", "GameManager");
 
     // Load theme
@@ -186,12 +209,34 @@ void SettingsDialog::loadSettings()
     // Load data collection setting
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
     enableDataCollectionCheckBox->setChecked(enableDataCollection);
+
+    // --- NEW: Load DB credentials ---
+    QString dbUsername = settings.value("dbUsername", "postgres").toString();
+    QString dbPassword = settings.value("dbPassword", "a").toString();
+    dbUsernameEdit->setText(dbUsername);
+    dbPasswordEdit->setText(dbPassword);
 }
 
 void SettingsDialog::saveSettings()
 {
     // Save settings to QSettings
     QSettings settings("YourCompany", "GameManager");
+
+    // Write a machine-readable config file for the Python backend
+    QJsonObject dbConfig;
+    dbConfig["host"] = "127.0.0.1";
+    dbConfig["port"] = "5432";
+    dbConfig["database"] = "playerdata";
+    dbConfig["user"] = dbUsernameEdit->text();
+    dbConfig["password"] = dbPasswordEdit->text();
+
+    QJsonDocument doc(dbConfig);
+    QFile configFile("debug/backend/db_config.json");
+    if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        configFile.write(doc.toJson());
+        configFile.close();
+        qDebug() << "Wrote debug/backend/db_config.json for Python backend.";
+    }
 
     // Save theme
     settings.setValue("theme", currentTheme);
@@ -202,6 +247,9 @@ void SettingsDialog::saveSettings()
 
     // Save data collection setting
     settings.setValue("enableDataCollection", enableDataCollection);
+
+    settings.setValue("dbUsername", dbUsernameEdit->text());
+    settings.setValue("dbPassword", dbPasswordEdit->text());
 }
 
 void SettingsDialog::applySettings()
