@@ -222,22 +222,6 @@ void SettingsDialog::saveSettings()
     // Save settings to QSettings
     QSettings settings("YourCompany", "GameManager");
 
-    // Write a machine-readable config file for the Python backend
-    QJsonObject dbConfig;
-    dbConfig["host"] = "127.0.0.1";
-    dbConfig["port"] = "5432";
-    dbConfig["database"] = "playerdata";
-    dbConfig["user"] = dbUsernameEdit->text();
-    dbConfig["password"] = dbPasswordEdit->text();
-
-    QJsonDocument doc(dbConfig);
-    QFile configFile("debug/backend/db_config.json");
-    if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        configFile.write(doc.toJson());
-        configFile.close();
-        qDebug() << "Wrote debug/backend/db_config.json for Python backend.";
-    }
-
     // Save theme
     settings.setValue("theme", currentTheme);
 
@@ -248,8 +232,31 @@ void SettingsDialog::saveSettings()
     // Save data collection setting
     settings.setValue("enableDataCollection", enableDataCollection);
 
-    settings.setValue("dbUsername", dbUsernameEdit->text());
-    settings.setValue("dbPassword", dbPasswordEdit->text());
+    // --- NEW: Save DB credentials and write db_config.json for Python backend ---
+    QString dbUsername = dbUsernameEdit->text();
+    QString dbPassword = dbPasswordEdit->text();
+
+    settings.setValue("dbUsername", dbUsername);
+    settings.setValue("dbPassword", dbPassword);
+
+    // Write machine-readable config file for Python
+    QJsonObject dbConfig;
+    dbConfig["host"] = "127.0.0.1";
+    dbConfig["port"] = "5432";
+    dbConfig["database"] = "playerdata";
+    dbConfig["user"] = dbUsername;
+    dbConfig["password"] = dbPassword;
+
+    QJsonDocument doc(dbConfig);
+    QString configPath = "debug/backend/db_config.json";
+    QFile configFile(configPath);
+    if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        configFile.write(doc.toJson());
+        configFile.close();
+        qDebug() << "Wrote db_config.json to:" << configPath;
+    } else {
+        qWarning() << "Failed to write db_config.json to:" << configPath;
+    }
 }
 
 void SettingsDialog::applySettings()
