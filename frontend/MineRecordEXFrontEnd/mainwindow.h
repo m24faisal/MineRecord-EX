@@ -11,6 +11,7 @@
 #include <QEvent>
 #include <QMessageBox>
 #include <QProcess>
+#include <QCloseEvent>
 
 // --- Forward declare the Qt-generated UI namespace ---
 QT_BEGIN_NAMESPACE
@@ -35,6 +36,7 @@ public:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 public slots:
     void on_actionAdd_Game_triggered();

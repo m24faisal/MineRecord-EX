@@ -18,6 +18,7 @@
 #include <QStyleFactory>
 #include <QDebug>
 #include <QMessageBox>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -119,6 +120,38 @@ MainWindow::~MainWindow()
         delete settingsDialog;
     }
     delete ui;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // Check if any game is currently being recorded
+    bool hasActiveRecording = false;
+    for (auto it = programs.begin(); it != programs.end(); ++it) {
+        ProgramInfo *program = it.value();
+        if (program && program->isRecording()) {
+            hasActiveRecording = true;
+            break;
+        }
+    }
+
+    if (hasActiveRecording) {
+        QMessageBox::information(this, "Stopping Recordings",
+                                 "Active recordings detected. Stopping and saving...");
+
+        // Stop all active recordings via Python backend
+        for (auto it = programs.begin(); it != programs.end(); ++it) {
+            ProgramInfo *program = it.value();
+            if (program && program->isRecording()) {
+                QString result = stopPythonRecording(program->recordingId());
+                qDebug() << "Stopped recording for:" << program->name() << "Result:" << result;
+                program->setRecording(false);
+            }
+        }
+        saveProgramData(); // Update UI state (optional but clean)
+    }
+
+    // Proceed with normal close
+    QMainWindow::closeEvent(event);
 }
 
 // --- Python Backend Methods (Updated to use wrapper) ---
@@ -576,3 +609,5 @@ void MainWindow::on_actionStop_Recording_triggered()
     qDebug() << "Main menu 'Stop Recording' action triggered.";
     stopRecording();
 }
+
+
