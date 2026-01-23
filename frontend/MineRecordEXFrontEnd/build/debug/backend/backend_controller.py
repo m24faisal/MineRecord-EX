@@ -9,7 +9,7 @@ import pandas as pd
 # Import your existing modules
 from screenRecord import start_ffmpeg_process
 from database import Database
-
+import subprocess
 # --- NOTE: This file no longer manages the data server or database directly ---
 # It now calls the functions from the new, unified scripts.
 
@@ -53,19 +53,35 @@ def stop_recording(recording_id):
     try:
         if recording_id not in active_recordings:
             return f"Error: Recording with ID {recording_id} not found."
+        
         recording = active_recordings[recording_id]
         recording["status"] = "stopped"
         recording["end_time"] = datetime.now()
-        print(f"[*] Stopping recording for {recording['game_name']}. Data collection is unaffected.")
+        print(f"[*] Stopping recording for {recording['game_name']}.")
+        
         screen_process = recording.get("screen_process")
         if screen_process and screen_process.poll() is None:
-            print(f"[*] Stopping screen recording for {recording['game_name']}...")
-            screen_process.communicate(input=b'q')
-            print("[*] Screen recording process stopped gracefully.")
+            print(f"[*] Sending 'q' to FFmpeg for {recording['game_name']}...")
+            try:
+                # Send 'q' to gracefully quit FFmpeg (non-blocking)
+                screen_process.stdin.write(b'q')
+                screen_process.stdin.flush()
+                # Wait up to 2 seconds for clean exit
+                try:
+                    screen_process.wait(timeout=2)
+                    print("[*] FFmpeg exited cleanly.")
+                except subprocess.TimeoutExpired:
+                    print("[*] FFmpeg did not exit in time; proceeding anyway.")
+            except Exception as e:
+                print(f"[!] Error sending 'q' to FFmpeg: {e}")
+        
         del active_recordings[recording_id]
         return f"Recording {recording_id} for {recording['game_name']} stopped."
+    
     except Exception as e:
-        return f"Error: Failed to stop recording: {str(e)}"
+        error_msg = f"Error: Failed to stop recording: {str(e)}"
+        print(f"[STOP ERROR] {error_msg}\n{traceback.format_exc()}")
+        return error_msg
 
 def export_player_data(player_name, export_path):
     """
@@ -119,19 +135,21 @@ def export_player_data(player_name, export_path):
 
 def shutdown_all():
     """Gracefully stops all active recordings and cleans up processes."""
-    print("[*] SHUTDOWN: Shutdown signal received. Stopping all active recordings...")
+    print("[*] SHUTDOWN: Stopping all active recordings...")
     if not active_recordings:
-        print("[*] SHUTDOWN: No active recordings to stop.")
+        print("[*] SHUTDOWN: No active recordings.")
         return
-    recording_ids_to_stop = list(active_recordings.keys())
-    print(f"[*] SHUTDOWN: Found {len(recording_ids_to_stop)} recordings to stop.")
-    for recording_id in recording_ids_to_stop:
-        print(f"[*] SHUTDOWN: Stopping recording ID: {recording_id}")
-        if recording_id in active_recordings:
-            recording = active_recordings[recording_id]
-            screen_process = recording.get("screen_process")
-            if screen_process and screen_process.poll() is None:
-                print(f"[*] SHUTDOWN: Terminating FFmpeg for {recording['game_name']}.")
-                screen_process.terminate()
+    
+    for recording_id in list(active_recordings.keys()):
+        recording = active_recordings[recording_id]
+        screen_process = recording.get("screen_process")
+        if screen_process and screen_process.poll() is None:
+            print(f"[*] SHUTDOWN: Sending 'q' to FFmpeg for {recording['game_name']}...")
+            try:
+                screen_process.stdin.write(b'q')
+                screen_process.stdin.flush()
+                screen_process.wait(timeout=3)  # Slightly longer on shutdown
+            except:
+                pass  # Best-effort only
     active_recordings.clear()
-    print("[*] SHUTDOWN: All recordings have been stopped.")
+    print("[*] SHUTDOWN: Cleanup complete.")

@@ -14,7 +14,7 @@ def load_db_config() -> Dict[str, Any]:
         "port": "5432",
         "database": "playerdata",
         "user": "postgres",
-        "password": "a"
+        "password": "postgres"
     }
 
     if os.path.exists(config_path):
