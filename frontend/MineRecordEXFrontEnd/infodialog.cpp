@@ -35,7 +35,7 @@ void InfoDialog::setupUI()
         "<p>MineRecordEX is a gaming utility software application that helps with creating gameplay recordings for the Minecraft video game. "
         "This software also allows the user to export their in-game stats to a viewable spreadsheet file for later reference. This program is "
         "categorized under Free Open-Sourced Software (FOSS)</p>"
-        "<p><b>Authors: </b> Mahir Faisal and Raiyyan Siddiqui</p>"
+        "<p><b>Author: </b> Mahir Faisal</p>"
         "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal?tab=repositories   >Github</a></p>"
         );
 

@@ -190,7 +190,7 @@ void SettingsDialog::setupDbSettings()
 
 void SettingsDialog::loadSettings()
 {
-    QSettings settings("YourCompany", "GameManager");
+    QSettings settings("Minecraft", "Stat Tracker");
 
     // Load theme
     currentTheme = settings.value("theme", "Default").toString();
@@ -220,7 +220,7 @@ void SettingsDialog::loadSettings()
 void SettingsDialog::saveSettings()
 {
     // Save settings to QSettings
-    QSettings settings("YourCompany", "GameManager");
+    QSettings settings("Minecraft", "Stat Tracker");
 
     // Save theme
     settings.setValue("theme", currentTheme);

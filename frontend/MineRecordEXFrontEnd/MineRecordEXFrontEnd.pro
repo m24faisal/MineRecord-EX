@@ -1,6 +1,6 @@
 QT       += core gui widgets
 
-TARGET = GameManager
+TARGET = MineRecordEX
 TEMPLATE = app
 
 SOURCES += \

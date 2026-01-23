@@ -321,7 +321,7 @@ void MainWindow::setupUI()
     executableTable->setStyleSheet("QTableWidget::item:selected { background: #3399ff; }");
     layout->addWidget(executableTable);
     setCentralWidget(centralWidget);
-    setWindowTitle("Game Manager");
+    setWindowTitle("MineRecordEX");
     resize(800, 600);
 }
 
