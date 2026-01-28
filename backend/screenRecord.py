@@ -1,15 +1,20 @@
 # backend/screenRecord.py
 import subprocess
 import sys
-
+import os
 def start_ffmpeg_process(output_file, fps=30):
     """
     Starts an FFmpeg process for screen recording.
     The process must be controlled externally by sending 'q' to stdin.
     """
+    # Look for ffmpeg.exe in the same folder as the running script's parent (i.e., next to GameManager.exe)
+    ffmpeg_exe = os.path.join(os.path.dirname(__file__), "..", "ffmpeg.exe")
+    if not os.path.exists(ffmpeg_exe):
+        # Fallback: assume it's in PATH (for dev)
+        ffmpeg_exe = "ffmpeg"
     # A robust FFmpeg command for gdigrab
     ffmpeg_cmd = [
-        "ffmpeg",
+        ffmpeg_exe,
         "-f", "gdigrab",
         "-framerate", str(fps),
         "-probesize", "10M",

@@ -10,6 +10,7 @@ namespace py = pybind11;
 #include <QDir>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QApplication>
 // --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
     py::module backend_module;
@@ -37,12 +38,14 @@ void PythonBackendWrapper::initialize()
         QDir projectRoot = exeInfo.absoluteDir();
         projectRoot.cdUp();
         // Construct an absolute path to the backend directory
-        QString backendPath = projectRoot.absoluteFilePath("debug/backend");
+        QString backendPath = QApplication::applicationDirPath() + "/backend";
+        QString pythonPath = QApplication::applicationDirPath() + "/python";
         // --- DEBUGGING: PRINT THE PATHS TO VERIFY ---
         qDebug() << "Project Root:" << projectRoot.absolutePath();
         qDebug() << "Backend Path:" << backendPath;
         // Add the absolute backend path to Python's sys.path
-        py::exec("import sys; sys.path.append('" + backendPath.toStdString() + "')");
+        py::exec("import sys; sys.path.insert(0, '" + backendPath.toStdString() + "')");
+        py::exec("sys.prefix = sys.exec_prefix = '" + pythonPath.toStdString() + "'");
         // Import the main controller module
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
