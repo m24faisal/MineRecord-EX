@@ -34,5 +34,9 @@ INCLUDEPATH += $$PYTHON_PATH/include $$PYBIND11_PATH
 LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
 
 win32 {
-    QMAKE_POST_LINK += \"$$PWD/copy_files.bat\" \"$$OUT_PWD/debug\"
+    CONFIG(debug, debug|release) {
+        QMAKE_POST_LINK += \"$$PWD/copy_files.bat\" \"$$OUT_PWD/debug\"
+    } else {
+        QMAKE_POST_LINK += \"$$PWD/copy_files.bat\" \"$$OUT_PWD/release\"
+    }
 }
