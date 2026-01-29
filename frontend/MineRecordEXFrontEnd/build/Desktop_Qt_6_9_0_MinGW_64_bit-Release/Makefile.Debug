@@ -1733,7 +1733,7 @@ debug/mainwindow.o: ../../mainwindow.cpp ../../mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
-		ui_mainwindow.h \
+		../../ui_mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QVariant \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QAction \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
