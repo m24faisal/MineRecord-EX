@@ -19,12 +19,13 @@
 #include <QCheckBox>
 #include <functional>
 
+class MainWindow;
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr, std::function<QString(const QString&, const QString&)> exportFunc = nullptr);
+    explicit SettingsDialog(MainWindow *mainWin, QWidget *parent = nullptr, std::function<QString(const QString&, const QString&)> exportFunc = nullptr);
     ~SettingsDialog();
 
 private slots:
@@ -35,9 +36,11 @@ private slots:
     void onBrowseRecordingPath();
     void onBrowseExportPath();
     void onThemeChanged(const QString &theme);
+    void updateSidebarTheme(const QString &theme);
     void onExportDataClicked();
 
 private:
+    MainWindow *m_MainWindow;
     void setupUI();
     void setupGeneralSettings();
     void setupPathSettings();
@@ -45,6 +48,7 @@ private:
     void loadSettings();
     void saveSettings();
     void applySettings();
+    void applySettingsInternal();
 
     // Main layout
     QVBoxLayout *mainLayout;

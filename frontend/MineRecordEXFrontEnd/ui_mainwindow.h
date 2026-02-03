@@ -27,8 +27,8 @@ public:
     QAction *actionGitHub;
     QAction *actionInfo;
     QAction *actionExit_Application;
-    QAction *actionStart_Recording;
-    QAction *actionStop_Recording;
+    QAction *fileActionStartRecording;
+    QAction *fileActionStopRecording;
     QWidget *centralwidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -65,18 +65,19 @@ public:
         actionInfo->setIcon(icon3);
         actionExit_Application = new QAction(MainWindow);
         actionExit_Application->setObjectName("actionExit_Application");
-        QIcon icon4(QIcon::fromTheme(QIcon::ThemeIcon::ApplicationExit));
+        QIcon icon4;
+        icon4.addFile(QString::fromUtf8(":/icons/Close X.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
         actionExit_Application->setIcon(icon4);
-        actionStart_Recording = new QAction(MainWindow);
-        actionStart_Recording->setObjectName("actionStart_Recording");
+        fileActionStartRecording = new QAction(MainWindow);
+        fileActionStartRecording->setObjectName("fileActionStartRecording");
         QIcon icon5;
         icon5.addFile(QString::fromUtf8(":/icons/startRecord.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
-        actionStart_Recording->setIcon(icon5);
-        actionStop_Recording = new QAction(MainWindow);
-        actionStop_Recording->setObjectName("actionStop_Recording");
+        fileActionStartRecording->setIcon(icon5);
+        fileActionStopRecording = new QAction(MainWindow);
+        fileActionStopRecording->setObjectName("fileActionStopRecording");
         QIcon icon6;
         icon6.addFile(QString::fromUtf8(":/icons/stopRecording.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
-        actionStop_Recording->setIcon(icon6);
+        fileActionStopRecording->setIcon(icon6);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);
@@ -87,13 +88,15 @@ public:
 "    background-color: grey;\n"
 "}\n"
 "QMenuBar::item {\n"
-"    color: blue;\n"
+"    color:  #3CB371;\n"
 "}\n"
 ""));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName("menuFile");
+        menuFile->setStyleSheet(QString::fromUtf8(""));
         menuAbout = new QMenu(menuBar);
         menuAbout->setObjectName("menuAbout");
+        menuAbout->setStyleSheet(QString::fromUtf8(""));
         MainWindow->setMenuBar(menuBar);
 
         menuBar->addAction(menuFile->menuAction());
@@ -101,8 +104,8 @@ public:
         menuFile->addAction(actionSettings);
         menuFile->addAction(actionAdd_Game);
         menuFile->addAction(actionExit_Application);
-        menuFile->addAction(actionStart_Recording);
-        menuFile->addAction(actionStop_Recording);
+        menuFile->addAction(fileActionStartRecording);
+        menuFile->addAction(fileActionStopRecording);
         menuAbout->addAction(actionGitHub);
         menuAbout->addAction(actionInfo);
 
@@ -119,8 +122,8 @@ public:
         actionGitHub->setText(QCoreApplication::translate("MainWindow", "GitHub", nullptr));
         actionInfo->setText(QCoreApplication::translate("MainWindow", "About MineRecordEX", nullptr));
         actionExit_Application->setText(QCoreApplication::translate("MainWindow", "Exit Program", nullptr));
-        actionStart_Recording->setText(QCoreApplication::translate("MainWindow", "Start Recording", nullptr));
-        actionStop_Recording->setText(QCoreApplication::translate("MainWindow", "Stop Recording", nullptr));
+        fileActionStartRecording->setText(QCoreApplication::translate("MainWindow", "Start Recording", nullptr));
+        fileActionStopRecording->setText(QCoreApplication::translate("MainWindow", "Stop Recording", nullptr));
         menuFile->setTitle(QCoreApplication::translate("MainWindow", "File", nullptr));
         menuAbout->setTitle(QCoreApplication::translate("MainWindow", "About", nullptr));
     } // retranslateUi

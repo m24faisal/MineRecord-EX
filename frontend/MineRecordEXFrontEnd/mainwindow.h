@@ -12,6 +12,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QCloseEvent>
+#include "ui_mainwindow.h"
 
 // --- Forward declare the Qt-generated UI namespace ---
 QT_BEGIN_NAMESPACE
@@ -33,10 +34,13 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void applySettings();
 
 protected:
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent *event) override;
+
 
 public slots:
     void on_actionAdd_Game_triggered();
@@ -44,8 +48,8 @@ public slots:
     void on_actionGitHub_triggered();
     void on_actionInfo_triggered();
     void on_actionSettings_triggered();
-    void on_actionStart_Recording_triggered();
-    void on_actionStop_Recording_triggered();
+    //void on_actionStart_Recording_triggered();
+    //void on_actionStop_Recording_triggered();
     void updateProgramStatus();
     void showContextMenu(const QPoint &pos);
     void removeGame();
@@ -54,6 +58,7 @@ public slots:
 
 private slots:
     void handleDataCollectionError(QProcess::ProcessError error);
+    void onAppFocusChanged(QWidget *old, QWidget *now);
 
 private:
     // UI Setup and Management
@@ -62,7 +67,11 @@ private:
     void saveProgramData();
     void loadProgramData();
     void loadSettings();
-    void applySettings();
+    void recreateExecutableTable();
+    QString m_rightClickedPath;
+    QString getCurrentThemeStyleSheet() const;
+    bool startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName);
+    bool stopRecordingProcess(const QString &gameName);
 
     // Python Backend Management (Methods are now simpler)
     void initializePythonBackend();
@@ -73,13 +82,8 @@ private:
     // --- Member Variables ---
     // NOTE: The order here is important. The constructor's initializer list must match this order.
 
-    // Python backend wrapper - NO pybind11 types here!
-    PythonBackendWrapper* m_pythonWrapper;
-
-    // UI member (from Qt Designer)
     Ui::MainWindow *ui;
-
-    // Other UI and state members
+    PythonBackendWrapper *m_pythonWrapper;
     QTableWidget *executableTable;
     QWidget *centralWidget;
     QTimer *updateTimer;
@@ -88,13 +92,14 @@ private:
     QAction *removeAction;
     QAction *startRecordingAction;
     QAction *stopRecordingAction;
-    InfoDialog *infoDialog;
+    QDialog *infoDialog;
     SettingsDialog *settingsDialog;
     QString activeRecordingId;
-    QProcess *dataCollectionProcess; // For the standalone server
-
-    // Settings
+    QProcess *dataCollectionProcess;
     bool enableDataCollection;
+
+    QString m_lastSelectedExecutablePath;
+    bool m_isRecordingActionInProgress = false;
 };
 
 #endif // MAINWINDOW_H

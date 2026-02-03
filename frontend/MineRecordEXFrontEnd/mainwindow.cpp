@@ -19,12 +19,15 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QPalette>
+#include <QScrollBar>
+#include <QUuid>
+#include <QScopedValueRollback>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    // --- CORRECTED: Initializer list order now matches header declaration order ---
-    m_pythonWrapper(nullptr),
     ui(new Ui::MainWindow),
+    m_pythonWrapper(nullptr),
     executableTable(nullptr),
     centralWidget(nullptr),
     updateTimer(nullptr),
@@ -37,68 +40,128 @@ MainWindow::MainWindow(QWidget *parent) :
     settingsDialog(nullptr),
     activeRecordingId(""),
     dataCollectionProcess(nullptr),
-    enableDataCollection(false)
+    enableDataCollection(false),
+    m_lastSelectedExecutablePath(""),
+    m_isRecordingActionInProgress(false)
 {
     ui->setupUi(this);
-
-    loadSettings();
-    qDebug() << "SETTINGS LOADED. enableDataCollection is:" << enableDataCollection;
-
-    applySettings();
     setupUI();
 
+    loadSettings();
+    applySettings();
+
+    // Set up timers
     updateTimer = new QTimer(this);
-    connect(updateTimer, SIGNAL(timeout()), this, SLOT(updateProgramStatus()));
+    connect(updateTimer, &QTimer::timeout, this, &MainWindow::updateProgramStatus);
     updateTimer->start(1000);
 
     ProcessDetector::instance().setUpdateInterval(500);
-    connect(&ProcessDetector::instance(), SIGNAL(processListUpdated()),
-            this, SLOT(updateProgramStatus()));
+    connect(&ProcessDetector::instance(), &ProcessDetector::processListUpdated,
+            this, &MainWindow::updateProgramStatus);
 
-    qApp->installEventFilter(this);
-
+    // Context menu setup
     contextMenu = new QMenu(this);
     removeAction = new QAction("Remove Game", this);
     startRecordingAction = new QAction("Start Recording", this);
     stopRecordingAction = new QAction("Stop Recording", this);
+    contextMenu->addActions({removeAction, startRecordingAction, stopRecordingAction});
 
-    contextMenu->addAction(removeAction);
-    contextMenu->addAction(startRecordingAction);
-    contextMenu->addAction(stopRecordingAction);
+    // Context menu styling
+    QSettings settings("Stat Tracker", "MineRecordEX");
+    QString currentTheme = settings.value("theme", "Light").toString();
 
-    // Enable context menu on the table
+    if (currentTheme == "Dark") {
+        contextMenu->setStyleSheet(R"(
+            QMenu {
+                background-color: #2A2A2A;
+                border: 1px solid #404040;
+            }
+            QMenu::item {
+                padding: 6px 20px 6px 20px;
+                color: white;
+            }
+            QMenu::item:selected {
+                background-color: #454545;
+                color: white;
+            }
+            QMenu::item:disabled {
+                color: #777777;
+            }
+        )");
+    } else {
+        contextMenu->setStyleSheet(R"(
+            QMenu {
+                background-color: white;
+                border: 1px solid #CCCCCC;
+            }
+            QMenu::item {
+                padding: 6px 20px 6px 20px;
+                color: black;
+            }
+            QMenu::item:selected {
+                background-color: #E0E0E0;
+                color: black;
+            }
+            QMenu::item:disabled {
+                color: #999999;
+            }
+        )");
+    }
+
     executableTable->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(executableTable, SIGNAL(customContextMenuRequested(const QPoint &)),
-            this, SLOT(showContextMenu(const QPoint &)));
+    connect(executableTable, &QTableWidget::customContextMenuRequested,
+            this, &MainWindow::showContextMenu);
 
-    // --- ADD DEBUG OUTPUT TO VERIFY CONNECTIONS ---
-    qDebug() << "Connecting removeAction->triggered() to removeGame() slot...";
-    connect(removeAction, SIGNAL(triggered()), this, SLOT(removeGame()));
+    // ✅ SAFE RECORDING ACTION CONNECTIONS (NO AUTO-CONNECTION RISK)
+    connect(ui->fileActionStartRecording, &QAction::triggered, this, [this]() {
+        static bool inProgress = false;
+        if (!inProgress) {
+            inProgress = true;
+            startRecording();
+            inProgress = false;
+        }
+    });
 
-    qDebug() << "Connecting startRecordingAction->triggered() to startRecording() slot...";
-    connect(startRecordingAction, SIGNAL(triggered()), this, SLOT(startRecording()));
+    connect(ui->fileActionStopRecording, &QAction::triggered, this, [this]() {
+        static bool inProgress = false;
+        if (!inProgress) {
+            inProgress = true;
+            stopRecording();
+            inProgress = false;
+        }
+    });
 
-    qDebug() << "Connecting stopRecordingAction->triggered() to stopRecording() slot...";
-    connect(stopRecordingAction, SIGNAL(triggered()), this, SLOT(stopRecording()));
+    // Context menu actions
+    connect(startRecordingAction, &QAction::triggered, this, &MainWindow::startRecording);
+    connect(stopRecordingAction, &QAction::triggered, this, &MainWindow::stopRecording);
+    connect(removeAction, &QAction::triggered, this, &MainWindow::removeGame);
 
-    // --- THIS IS THE MISSING LINK ---
-    // Connect the removeAction's triggered signal to the removeGame() slot
-    connect(removeAction, SIGNAL(triggered()), this, SLOT(removeGame()));
+    // Preserve table selection behavior
+    executableTable->setFocusPolicy(Qt::StrongFocus);
+    executableTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    executableTable->installEventFilter(this);
 
+    // Load program data
     loadProgramData();
 
-    // --- Python Integration ---
+    if (executableTable) {
+        executableTable->clearSelection();
+        executableTable->setCurrentCell(-1, -1);
+    }
+
+    // Python backend
     m_pythonWrapper = new PythonBackendWrapper();
     m_pythonWrapper->initialize();
-
-    // --- Start the global data collection service IF AND ONLY IF the setting is enabled ---
     if (enableDataCollection) {
-        qDebug() << "Data collection is ENABLED. Attempting to start global Python service NOW.";
-        m_pythonWrapper->startDataService(); // Correct function name
-    } else {
-        qDebug() << "Data collection is DISABLED. Service will not be started.";
+        m_pythonWrapper->startDataService();
     }
+
+    qApp->installEventFilter(this);
 }
+
+
 
 MainWindow::~MainWindow()
 {
@@ -121,7 +184,34 @@ MainWindow::~MainWindow()
     }
     delete ui;
 }
+void MainWindow::setupUI()
+{
+    centralWidget = new QWidget(this);
+    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
 
+    executableTable = new QTableWidget(this);
+    executableTable->setColumnCount(4);
+    executableTable->setHorizontalHeaderLabels(QStringList() << "Program Name" << "Running" << "Time Played" << "Recording");
+    executableTable->horizontalHeader()->setStretchLastSection(true);
+    executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    executableTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    executableTable->setAlternatingRowColors(true);
+    executableTable->setFocusPolicy(Qt::StrongFocus); // ✅ Enable focus tracking
+
+    layout->addWidget(executableTable);
+    setCentralWidget(centralWidget);
+    setWindowTitle("MineRecordEX");
+    resize(800, 600);
+}
+
+void MainWindow::onAppFocusChanged(QWidget *old, QWidget *now)
+{
+    if (executableTable && old == executableTable && now != executableTable) {
+        executableTable->clearSelection();
+        executableTable->setCurrentCell(-1, -1);
+    }
+}
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Check if any game is currently being recorded
@@ -191,80 +281,182 @@ QString MainWindow::stopPythonRecording(const QString &recordingId)
 // --- Recording Slots ---
 void MainWindow::startRecording()
 {
-    qDebug() << "*** startRecording() SLOT HAS BEEN TRIGGERED ***";
-    int currentRow = executableTable->currentRow();
-    if (currentRow < 0) {
-        QMessageBox::information(this, "No Game Selected", "Please select a game from the list to start recording.");
+    if (!executableTable) {
+        qDebug() << "Executable table is null";
         return;
     }
 
-    QTableWidgetItem *pathItem = executableTable->item(currentRow, 0);
-    if (!pathItem) return;
+    QList<QTableWidgetSelectionRange> selection = executableTable->selectedRanges();
+    if (selection.isEmpty()) {
+        QMessageBox::warning(this, "No Selection", "Please select a game from the table first.");
+        return;
+    }
 
-    QString path = pathItem->data(Qt::UserRole).toString();
-    ProgramInfo *program = programs.value(path, nullptr);
-    if (!program) return;
+    int row = selection.first().topRow();
+    if (row < 0 || row >= executableTable->rowCount()) {
+        qDebug() << "Invalid row selection:" << row;
+        return;
+    }
 
-    QSettings settings("YourCompany", "GameManager");
+    QTableWidgetItem *nameItem = executableTable->item(row, 0);
+    if (!nameItem) {
+        qDebug() << "Missing name item at row" << row;
+        QMessageBox::critical(this, "Error", "Invalid game entry selected.");
+        return;
+    }
+
+    QString executablePath = nameItem->data(Qt::UserRole).toString();
+    QString gameName = nameItem->text();
+
+    if (executablePath.isEmpty()) {
+        qDebug() << "Empty executable path for game:" << gameName;
+        QMessageBox::critical(this, "Error", "Selected game has no executable path.");
+        return;
+    }
+
+    if (!activeRecordingId.isEmpty()) {
+        QMessageBox::warning(this, "Already Recording", "A recording is already in progress.");
+        return;
+    }
+
+    QFileInfo fileInfo(executablePath);
+    if (!fileInfo.exists() || !fileInfo.isExecutable()) {
+        QMessageBox::critical(this, "File Not Found",
+                              QString("Executable not found or not accessible:\n%1").arg(executablePath));
+        return;
+    }
+
+    activeRecordingId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    QSettings settings("Stat Tracker", "MineRecordEX");
     QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
+    QDir().mkpath(recordingPath);
 
-    QString result = startPythonRecording(program->name(), program->path(), recordingPath);
-
-    if (result.startsWith("Error:")) {
-        QMessageBox::warning(this, "Recording Failed", result);
+    QString recordingDir = recordingPath + "/" + activeRecordingId;
+    if (!QDir().mkpath(recordingDir)) {
+        QMessageBox::critical(this, "Error", "Failed to create recording directory.");
+        activeRecordingId.clear();
         return;
     }
 
-    program->setRecording(true);
-    program->setRecordingId(result); // Save the ID we got from Python
-    activeRecordingId = result;
+    bool success = startRecordingProcess(executablePath, recordingDir, gameName);
 
-    QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
-    if (recordingItem) {
-        recordingItem->setText("Yes");
-        recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
+    if (success) {
+        // ✅ Update only the specific row
+        QTableWidgetItem *recordingItem = executableTable->item(row, 3);
+        if (recordingItem) {
+            recordingItem->setText("Yes");
+            recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
+        }
+
+        // ✅ Update ProgramInfo
+        QString path = nameItem->data(Qt::UserRole).toString();
+        if (programs.contains(path)) {
+            programs[path]->setRecording(true);
+        }
+        saveProgramData();
+
+        // ❌ NO updateProgramStatus() here → prevents duplicate triggers
+
+        QMessageBox::information(this, "Recording Started",
+                                 QString("Recording started for %1").arg(gameName));
+    } else {
+        activeRecordingId.clear();
+        QMessageBox::critical(this, "Recording Failed",
+                              "Failed to start recording process.");
     }
-    QMessageBox::information(this, "Recording Started", "Recording started for " + program->name());
-    saveProgramData();
 }
+
 
 void MainWindow::stopRecording()
 {
-    int currentRow = executableTable->currentRow();
-    if (currentRow < 0) {
-        QMessageBox::information(this, "No Game Selected", "Please select a game from the list to stop recording.");
+    if (!executableTable) {
+        qDebug() << "Executable table is null";
         return;
     }
 
-    QTableWidgetItem *pathItem = executableTable->item(currentRow, 0);
-    if (!pathItem) return;
-
-    QString path = pathItem->data(Qt::UserRole).toString();
-    ProgramInfo *program = programs.value(path, nullptr);
-    if (!program) return;
-
-    QString recordingId = program->recordingId();
-
-    QString result = stopPythonRecording(recordingId);
-
-    if (result.startsWith("Error:")) {
-        QMessageBox::warning(this, "Recording Failed", result);
+    QList<QTableWidgetSelectionRange> selection = executableTable->selectedRanges();
+    if (selection.isEmpty()) {
+        QMessageBox::warning(this, "No Selection", "Please select a game from the table first.");
         return;
     }
 
-    // Update the program's state
-    program->setRecording(false);
-    QTableWidgetItem *recordingItem = executableTable->item(currentRow, 3);
-    if (recordingItem) {
-        recordingItem->setText("No");
-        recordingItem->setBackground(QBrush());
+    int row = selection.first().topRow();
+    if (row < 0 || row >= executableTable->rowCount()) {
+        qDebug() << "Invalid row selection:" << row;
+        return;
     }
 
-    // Clear the global active ID
-    activeRecordingId.clear();
+    QTableWidgetItem *nameItem = executableTable->item(row, 0);
+    if (!nameItem) {
+        qDebug() << "Missing name item at row" << row;
+        QMessageBox::critical(this, "Error", "Invalid game entry selected.");
+        return;
+    }
 
-    QMessageBox::information(this, "Recording Stopped", "Recording stopped for " + program->name());
-    saveProgramData();
+    QString gameName = nameItem->text();
+
+    if (activeRecordingId.isEmpty()) {
+        QMessageBox::warning(this, "Not Recording", "No active recording to stop.");
+        return;
+    }
+
+    bool success = stopRecordingProcess(gameName);
+
+    if (success) {
+        // ✅ Update only the specific row
+        QTableWidgetItem *recordingItem = executableTable->item(row, 3);
+        if (recordingItem) {
+            recordingItem->setText("No");
+            recordingItem->setBackground(Qt::NoBrush);
+        }
+
+        // ✅ Update ProgramInfo
+        QString path = nameItem->data(Qt::UserRole).toString();
+        if (programs.contains(path)) {
+            programs[path]->setRecording(false);
+        }
+        saveProgramData();
+
+        // ❌ NO updateProgramStatus() here
+
+        activeRecordingId.clear();
+        QMessageBox::information(this, "Recording Stopped",
+                                 QString("Recording stopped for %1").arg(gameName));
+    } else {
+        QMessageBox::warning(this, "Stop Failed",
+                             "Failed to stop recording process.");
+    }
+}
+
+bool MainWindow::startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName)
+{
+    QProcess *gameProcess = new QProcess(this);
+    gameProcess->setWorkingDirectory(QFileInfo(executablePath).absolutePath());
+    gameProcess->start(executablePath);
+
+    if (!gameProcess->waitForStarted(5000)) {
+        qDebug() << "Failed to start game process:" << gameProcess->errorString();
+        delete gameProcess;
+        return false;
+    }
+
+    if (enableDataCollection && m_pythonWrapper) {
+        m_pythonWrapper->startDataService();
+    }
+
+    qDebug() << "Started recording for:" << gameName << "at" << recordingDir;
+    return true;
+}
+
+bool MainWindow::stopRecordingProcess(const QString &gameName)
+{
+    if (enableDataCollection && m_pythonWrapper) {
+        m_pythonWrapper->stopDataService();
+    }
+
+    qDebug() << "Stopped recording for:" << gameName;
+    return true;
 }
 
 void MainWindow::handleDataCollectionError(QProcess::ProcessError error)
@@ -294,40 +486,73 @@ void MainWindow::handleDataCollectionError(QProcess::ProcessError error)
 }
 
 // --- All other existing methods ---
-bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+void MainWindow::changeEvent(QEvent *event)
 {
-    if (event->type() == QEvent::MouseButtonPress) {
-        QWidget *widget = qobject_cast<QWidget*>(watched);
-        if (widget && !executableTable->isAncestorOf(widget)) {
-            executableTable->clearSelection();
+    if (event->type() == QEvent::WindowStateChange) {
+        // When window is restored (from minimized or maximized), clear any selection
+        if (!isMinimized() && isVisible()) {
+            if (executableTable) {
+                executableTable->clearSelection();
+                executableTable->setCurrentCell(-1, -1);
+            }
         }
     }
-    return QMainWindow::eventFilter(watched, event);
+    QMainWindow::changeEvent(event);
+}
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == executableTable && event->type() == QEvent::FocusIn) {
+        // Track current selection when table gains focus
+        QList<QTableWidgetSelectionRange> selection = executableTable->selectedRanges();
+        if (!selection.isEmpty()) {
+            int row = selection.first().topRow();
+            if (row >= 0 && row < executableTable->rowCount()) {
+                QTableWidgetItem *item = executableTable->item(row, 0);
+                if (item) {
+                    m_lastSelectedExecutablePath = item->data(Qt::UserRole).toString();
+                }
+            }
+        }
+    }
+
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        QPoint globalPos = mouseEvent->globalPosition().toPoint();
+        QWidget *clickedWidget = qApp->widgetAt(globalPos);
+
+        // Check if click is on menu bar or menu items
+        bool clickedOnMenu = false;
+        QWidget *walker = clickedWidget;
+        while (walker) {
+            if (qobject_cast<QMenuBar*>(walker) ||
+                walker->inherits("QMenu") ||
+                walker->metaObject()->className() == QString("QMenu")) {
+                clickedOnMenu = true;
+                break;
+            }
+            walker = walker->parentWidget();
+        }
+
+        if (executableTable && clickedWidget != executableTable &&
+            clickedWidget != executableTable->horizontalHeader() &&
+            clickedWidget != executableTable->verticalHeader() &&
+            !clickedOnMenu) {
+
+            executableTable->clearSelection();
+            executableTable->setCurrentCell(-1, -1);
+            m_lastSelectedExecutablePath.clear(); // Clear when clicking elsewhere
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
-void MainWindow::setupUI()
-{
-    centralWidget = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
-    executableTable = new QTableWidget(this);
-    executableTable->setColumnCount(4);
-    executableTable->setHorizontalHeaderLabels(QStringList() << "Program Name" << "Running" << "Time Played" << "Recording");
-    executableTable->horizontalHeader()->setStretchLastSection(true);
-    executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    executableTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    executableTable->setAlternatingRowColors(true);
-    executableTable->setFocusPolicy(Qt::NoFocus);
-    executableTable->setStyleSheet("QTableWidget::item:selected { background: #3399ff; }");
-    layout->addWidget(executableTable);
-    setCentralWidget(centralWidget);
-    setWindowTitle("MineRecordEX");
-    resize(800, 600);
-}
 
 void MainWindow::on_actionAdd_Game_triggered()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, "Select Executable", QDir::homePath(), "Executable Files (*.exe *.bat *.cmd *.app *.sh);;All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "Select Executable",
+                                                    QDir::homePath(),
+                                                    "Executable Files (*.exe *.bat *.cmd *.app *.sh);;All Files (*)");
+
     if (!filePath.isEmpty()) {
         QFileInfo fileInfo(filePath);
         addExecutableToTable(fileInfo);
@@ -338,7 +563,7 @@ void MainWindow::on_actionExit_Application_triggered()
 { this->close(); }
 
 void MainWindow::on_actionGitHub_triggered()
-{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories ")); }
+{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories")); }
 
 void MainWindow::on_actionInfo_triggered()
 {
@@ -351,13 +576,19 @@ void MainWindow::on_actionInfo_triggered()
 void MainWindow::on_actionSettings_triggered()
 {
     if (!settingsDialog) {
-        settingsDialog = new SettingsDialog(this, [this](const QString &playerName, const QString &exportPath) {
-            if (!m_pythonWrapper) {
-                return QString("Error: Python wrapper is not initialized.");
+        settingsDialog = new SettingsDialog(
+            this,  // MainWindow* mainWin
+            nullptr,  // QWidget* parent (explicitly pass nullptr)
+            [this](const QString &playerName, const QString &exportPath) {
+                if (!m_pythonWrapper) {
+                    return QString("Error: Python wrapper is not initialized.");
+                }
+                std::string result = m_pythonWrapper->exportPlayerData(playerName.toStdString(), exportPath.toStdString());
+                return QString::fromStdString(result);
             }
-            std::string result = m_pythonWrapper->exportPlayerData(playerName.toStdString(), exportPath.toStdString());
-            return QString::fromStdString(result);
-        });
+            );
+        // ✅ Apply current theme to settings dialog immediately
+        settingsDialog->setStyleSheet(getCurrentThemeStyleSheet());
     }
     settingsDialog->show();
     settingsDialog->raise();
@@ -366,111 +597,146 @@ void MainWindow::on_actionSettings_triggered()
 
 void MainWindow::updateProgramStatus()
 {
-    ProcessDetector &detector = ProcessDetector::instance();
-    for (int i = 0; i < executableTable->rowCount(); ++i) {
-        QTableWidgetItem *nameItem = executableTable->item(i, 0);
-        if (!nameItem) continue;
+    if (!executableTable) return;
 
-        QString path = nameItem->data(Qt::UserRole).toString();
+    // ✅ Save the EXECUTABLE PATH of the selected item (not just row index)
+    QString selectedExecutablePath;
+    int currentRow = executableTable->currentRow();
+    if (currentRow >= 0 && currentRow < executableTable->rowCount()) {
+        QTableWidgetItem *nameItem = executableTable->item(currentRow, 0);
+        if (nameItem) {
+            selectedExecutablePath = nameItem->data(Qt::UserRole).toString();
+        }
+    }
 
-        // --- CRITICAL FIX: Only proceed if the game is still in our programs map ---
-        if (!programs.contains(path)) {
-            // This game was removed by the user. Skip it.
-            // This is the most important part of the fix.
-            continue;
+    // Clear all existing items to remove cached appearance
+    executableTable->clearContents();
+    executableTable->setRowCount(0);
+
+    // Repopulate with fresh items that respect current palette
+    int newRow = 0;
+    int targetRow = -1; // Track where the previously selected item ends up
+
+    for (auto it = programs.begin(); it != programs.end(); ++it) {
+        QString path = it.key();
+        ProgramInfo *program = it.value();
+
+        if (!program) continue;
+
+        bool isRunning = ProcessDetector::instance().isProcessRunning(program->name());
+        if (program->isRunning() != isRunning) {
+            program->setRunning(isRunning);
         }
 
-        ProgramInfo *program = programs.value(path, nullptr);
-        if (program) {
-            bool isRunning = detector.isProcessRunning(program->name());
-            if (program->isRunning() != isRunning) {
-                program->setRunning(isRunning);
-                QTableWidgetItem *runningItem = executableTable->item(i, 1);
-                if (runningItem) {
-                    runningItem->setText(isRunning ? "Yes" : "No");
-                    if (isRunning) {
-                        runningItem->setBackground(QBrush(QColor(144, 238, 144)));
-                    } else {
-                        runningItem->setBackground(QBrush(QColor(255, 182, 193)));
-                    }
-                }
-            }
+        QString timePlayed = program->formattedTimePlayed();
+        bool isRecording = program->isRecording();
 
-            QTableWidgetItem *timeItem = executableTable->item(i, 2);
-            if (timeItem) {
-                timeItem->setText(program->formattedTimePlayed());
-            }
+        // Create FRESH items
+        QTableWidgetItem *nameItem = new QTableWidgetItem(program->name());
+        nameItem->setData(Qt::UserRole, path);
 
-            QTableWidgetItem *recordingItem = executableTable->item(i, 3);
-            if (recordingItem) {
-                recordingItem->setText(program->isRecording() ? "Yes" : "No");
-                if (program->isRecording()) {
-                    recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
-                } else {
-                    recordingItem->setBackground(QBrush());
-                }
-            }
+        QTableWidgetItem *runningItem = new QTableWidgetItem(isRunning ? "Yes" : "No");
+        QTableWidgetItem *timeItem = new QTableWidgetItem(timePlayed);
+        QTableWidgetItem *recordingItem = new QTableWidgetItem(isRecording ? "Yes" : "No");
+
+        // ✅ RESTORE STATUS HIGHLIGHTS
+        if (!isRunning) {
+            runningItem->setBackground(QBrush(QColor(255, 182, 193))); // Light pink/red for "Not Running"
+        } else {
+            runningItem->setBackground(QBrush(QColor(144, 238, 144))); // Light green for "Running"
         }
+
+        if (isRecording) {
+            recordingItem->setBackground(QBrush(QColor(255, 165, 0))); // Orange for "Recording"
+        }
+
+        executableTable->insertRow(newRow);
+        executableTable->setItem(newRow, 0, nameItem);
+        executableTable->setItem(newRow, 1, runningItem);
+        executableTable->setItem(newRow, 2, timeItem);
+        executableTable->setItem(newRow, 3, recordingItem);
+
+        // ✅ Track where our selected item is
+        if (!selectedExecutablePath.isEmpty() && path == selectedExecutablePath) {
+            targetRow = newRow;
+        }
+
+        newRow++;
+    }
+
+    // ✅ Restore selection using EXECUTABLE PATH match (not row index)
+    if (targetRow >= 0) {
+        executableTable->selectRow(targetRow);
     }
 }
 
 void MainWindow::showContextMenu(const QPoint &pos)
 {
-    QTableWidgetItem *item = executableTable->itemAt(pos);
-    if (item) {
-        executableTable->selectRow(item->row());
-        QString path = item->data(Qt::UserRole).toString();
+    // Get index at viewport position
+    QModelIndex index = executableTable->indexAt(pos);
+    if (!index.isValid()) return;
 
-        // --- CRITICAL CHECK ---
-        // Is this game even in our programs map? If not, we can't manage it.
-        if (!programs.contains(path)) {
-            qWarning() << "Context menu: Right-clicked on an item not in the programs map. Path:" << path;
-            return; // Do nothing
-        }
+    int row = index.row();
 
-        ProgramInfo *program = programs.value(path, nullptr);
-        if (!program) {
-            qWarning() << "Context menu: Could not get ProgramInfo for path:" << path;
-            return;
-        }
+    // Select the clicked item visually
+    executableTable->selectRow(row);
 
-        // --- FIX: Explicitly enable/disable actions based on program state ---
-        bool isRecording = program->isRecording();
+    QTableWidgetItem *nameItem = executableTable->item(row, 0);
+    if (!nameItem) return;
 
-        qDebug() << "Context Menu: Game =" << program->name() << ", Is Recording =" << isRecording;
+    QString path = nameItem->data(Qt::UserRole).toString();
+    if (!programs.contains(path)) return;
 
-        removeAction->setEnabled(true); // Always can remove
+    ProgramInfo *program = programs.value(path, nullptr);
+    if (!program) return;
 
-        if (isRecording) {
-            startRecordingAction->setEnabled(false); // Can't start if already recording
-            stopRecordingAction->setEnabled(true);  // Can stop if already recording
-        } else {
-            startRecordingAction->setEnabled(true);  // Can start if not recording
-            stopRecordingAction->setEnabled(false); // Can't stop if not recording
-        }
+    // ✅ CRITICAL: Store the path for use in action slots
+    m_rightClickedPath = path;
 
-        contextMenu->exec(executableTable->viewport()->mapToGlobal(pos));
-    }
+    // Keep actions enabled
+    startRecordingAction->setEnabled(true);
+    stopRecordingAction->setEnabled(true);
+
+    QFont normalFont;
+    normalFont.setBold(false);
+    startRecordingAction->setFont(normalFont);
+    stopRecordingAction->setFont(normalFont);
+
+    contextMenu->popup(executableTable->viewport()->mapToGlobal(pos));
 }
+
 
 void MainWindow::removeGame()
 {
-    int currentRow = executableTable->currentRow();
-    if (currentRow >= 0) {
-        QString path = executableTable->item(currentRow, 0)->data(Qt::UserRole).toString();
-        int ret = QMessageBox::question(this, "Remove Game", "Are you sure you want to remove this game from the list?", QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-        if (ret == QMessageBox::Yes) {
-            if (programs.contains(path)) {
-                delete programs.take(path); // Removes from map
+    // ✅ Use the stored right-clicked path
+    if (m_rightClickedPath.isEmpty()) return;
+
+    if (!programs.contains(m_rightClickedPath)) return;
+    ProgramInfo *program = programs.value(m_rightClickedPath, nullptr);
+    if (!program) return;
+
+    QString gameName = program->name();
+    int ret = QMessageBox::question(this, "Remove Game",
+                                    "Are you sure you want to remove " + gameName + " from the list?",
+                                    QMessageBox::Yes | QMessageBox::No);
+
+    if (ret == QMessageBox::Yes) {
+        // Remove from programs map
+        programs.remove(m_rightClickedPath);
+        delete program;
+
+        // Remove from table
+        for (int row = 0; row < executableTable->rowCount(); ++row) {
+            QTableWidgetItem *item = executableTable->item(row, 0);
+            if (item && item->data(Qt::UserRole).toString() == m_rightClickedPath) {
+                executableTable->removeRow(row);
+                break;
             }
-            executableTable->removeRow(currentRow); // Removes from table widget
-
-            // --- FIX: Force an immediate UI refresh to prevent the timer from re-adding it ---
-            updateProgramStatus();
-
-            saveProgramData();
         }
+
+        saveProgramData();
     }
+    m_rightClickedPath.clear(); // Clear after use
 }
 
 void MainWindow::addExecutableToTable(const QFileInfo &fileInfo)
@@ -507,7 +773,7 @@ void MainWindow::addExecutableToTable(const QFileInfo &fileInfo)
 
 void MainWindow::saveProgramData()
 {
-    QSettings settings("YourCompany", "GameManager");
+    QSettings settings("Stat Tracker", "MineRecordEX");
     settings.beginWriteArray("Programs");
     int index = 0;
     for (auto it = programs.begin(); it != programs.end(); ++it) {
@@ -524,7 +790,7 @@ void MainWindow::saveProgramData()
 
 void MainWindow::loadProgramData()
 {
-    QSettings settings("YourCompany", "GameManager");
+    QSettings settings("Stat Tracker", "MineRecordEX");
     int size = settings.beginReadArray("Programs");
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
@@ -537,77 +803,292 @@ void MainWindow::loadProgramData()
             program->setTimePlayedInSeconds(timePlayed);
             program->setRecording(isRecording);
             programs.insert(path, program);
-            int row = executableTable->rowCount();
-            executableTable->insertRow(row);
-            QTableWidgetItem *nameItem = new QTableWidgetItem(name);
-            QTableWidgetItem *runningItem = new QTableWidgetItem(program->isRunning() ? "Yes" : "No");
-            QTableWidgetItem *timeItem = new QTableWidgetItem(program->formattedTimePlayed());
-            QTableWidgetItem *recordingItem = new QTableWidgetItem(program->isRecording() ? "Yes" : "No");
-            nameItem->setData(Qt::UserRole, path);
-            if (program->isRunning()) {
-                runningItem->setBackground(QBrush(QColor(144, 238, 144)));
-            } else {
-                runningItem->setBackground(QBrush(QColor(255, 182, 193)));
-            }
-            if (program->isRecording()) {
-                recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
-            }
-            executableTable->setItem(row, 0, nameItem);
-            executableTable->setItem(row, 1, runningItem);
-            executableTable->setItem(row, 2, timeItem);
-            executableTable->setItem(row, 3, recordingItem);
+            // ✅ REMOVED: Don't insert rows directly here
         }
     }
     settings.endArray();
-    executableTable->resizeColumnsToContents();
+
+    // ✅ Let updateProgramStatus() handle table population
+    // This ensures consistent theming and no auto-selection
+    if (executableTable) {
+        updateProgramStatus();
+    }
+
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
 }
 
 void MainWindow::loadSettings()
 {
-    qDebug() << "loadSettings() called.";
-    QSettings settings("YourCompany", "GameManager");
-    bool dataCollectionSetting = settings.value("enableDataCollection", false).toBool();
-    qDebug() << "Value from QSettings is:" << dataCollectionSetting;
-    enableDataCollection = dataCollectionSetting;
-    qDebug() << "Member variable enableDataCollection is now set to:" << enableDataCollection;
+    QSettings settings("Stat Tracker", "MineRecordEX");
+    enableDataCollection = settings.value("enableDataCollection", false).toBool();
+}
+
+QString MainWindow::getCurrentThemeStyleSheet() const
+{
+    QSettings settings("Stat Tracker", "MineRecordEX");
+    QString theme = settings.value("theme", "Light").toString();
+
+    if (theme == "Dark") {
+        return R"(
+            QMainWindow, QDialog, QWidget {
+                background-color: #353535;
+                color: white;
+            }
+            QMenuBar {
+                background-color: #353535;
+                color: green;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 4px 8px;
+                color: green;
+            }
+            QMenuBar::item:selected {
+                background-color: #454545;
+                color: green;
+            }
+            QMenuBar::item:pressed {
+                background-color: #555555;
+                color: green;
+            }
+            QGroupBox {
+                background-color: #2A2A2A;
+                border: none;
+                margin-top: 1em;
+                padding: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                background-color: #2A2A2A;
+                color: white;
+            }
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                outline: none;
+                padding: 0px;
+                margin: 0px;
+            }
+            QListWidget::item {
+                padding: 8px 16px;
+                color: white;
+                background-color: transparent;
+                margin: 0px;
+            }
+            QListWidget::item:selected {
+                background-color: #454545;
+                color: white;
+            }
+            QListWidget::item:hover {
+                background-color: #555555;
+            }
+            QTableWidget {
+                background-color: #232323;
+                alternate-background-color: #353535;
+                color: white;
+                gridline-color: #404040;
+                selection-background-color: #2A82DA;
+                selection-color: black;
+                border: 1px solid #404040;
+            }
+            QHeaderView::section {
+                background-color: #353535;
+                color: white;
+                padding: 4px;
+                border: 1px solid #404040;
+            }
+            QPushButton {
+                background-color: #353535;
+                color: white;
+                border: 1px solid #555555;
+                padding: 4px;
+                border-radius: 2px;
+            }
+            QPushButton:hover {
+                background-color: #454545;
+            }
+            QLineEdit, QComboBox, QCheckBox {
+                background-color: #232323;
+                color: white;
+                border: 1px solid #555555;
+                padding: 2px;
+            }
+            /* ComboBox dropdown styling - DARK GREEN HOVER */
+            QComboBox QAbstractItemView {
+                background-color: #2A2A2A;
+                border: 1px solid #404040;
+            }
+            QComboBox QAbstractItemView::item {
+                color: white;
+                padding: 4px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #2E8B57;
+                color: white;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #2E8B57;
+                color: white;
+            }
+            /* Context menu hover effects */
+            QMenu {
+                background-color: #2A2A2A;
+                border: 1px solid #404040;
+            }
+            QMenu::item {
+                padding: 6px 20px 6px 20px;
+                color: white;
+            }
+            QMenu::item:selected {
+                background-color: #454545;
+                color: white;
+            }
+            QMenu::item:disabled {
+                color: #777777;
+            }
+        )";
+    } else {
+        return R"(
+            QMainWindow, QDialog, QWidget {
+                background-color: #F0F0F0;
+                color: black;
+            }
+            QMenuBar {
+                background-color: #F0F0F0;
+                color: green;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 4px 8px;
+                color: green;
+            }
+            QMenuBar::item:selected {
+                background-color: #E0E0E0;
+                color: green;
+            }
+            QMenuBar::item:pressed {
+                background-color: #D0D0D0;
+                color: green;
+            }
+            QGroupBox {
+                background-color: #FFFFFF;
+                border: none;
+                margin-top: 1em;
+                padding: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                background-color: #FFFFFF;
+                color: black;
+            }
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                outline: none;
+                padding: 0px;
+                margin: 0px;
+            }
+            QListWidget::item {
+                padding: 8px 16px;
+                color: black;
+                background-color: transparent;
+                margin: 0px;
+            }
+            QListWidget::item:selected {
+                background-color: #F0F0F0;
+                color: black;
+            }
+            QListWidget::item:hover {
+                background-color: #F5F5F5;
+            }
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #E6E6E6;
+                color: black;
+                gridline-color: #CCCCCC;
+                selection-background-color: #0078D7;
+                selection-color: white;
+                border: 1px solid #CCCCCC;
+            }
+            QHeaderView::section {
+                background-color: #F0F0F0;
+                color: black;
+                padding: 4px;
+                border: 1px solid #CCCCCC;
+            }
+            QPushButton {
+                background-color: #F0F0F0;
+                color: black;
+                border: 1px solid #CCCCCC;
+                padding: 4px;
+                border-radius: 2px;
+            }
+            QPushButton:hover {
+                background-color: #E0E0E0;
+            }
+            QLineEdit, QComboBox, QCheckBox {
+                background-color: white;
+                color: black;
+                border: 1px solid #CCCCCC;
+                padding: 2px;
+            }
+            /* ComboBox dropdown styling - DARK GREEN HOVER */
+            QComboBox QAbstractItemView {
+                background-color: white;
+                border: 1px solid #CCCCCC;
+            }
+            QComboBox QAbstractItemView::item {
+                color: black;
+                padding: 4px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #2E8B57;
+                color: white;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #2E8B57;
+                color: white;
+            }
+            /* Context menu hover effects */
+            QMenu {
+                background-color: white;
+                border: 1px solid #CCCCCC;
+            }
+            QMenu::item {
+                padding: 6px 20px 6px 20px;
+                color: black;
+            }
+            QMenu::item:selected {
+                background-color: #E0E0E0;
+                color: black;
+            }
+            QMenu::item:disabled {
+                color: #999999;
+            }
+        )";
+    }
 }
 
 void MainWindow::applySettings()
 {
-    qDebug() << "applySettings() called.";
-    QSettings settings("YourCompany", "GameManager");
-    QString theme = settings.value("theme", "Default").toString();
-    if (theme == "Dark") {
-        QApplication::setStyle("Fusion");
-        qApp->setPalette(QApplication::style()->standardPalette());
-    } else if (theme == "Light") {
-        QApplication::setStyle("Fusion");
-        qApp->setPalette(QApplication::style()->standardPalette());
-    } else {
-        QApplication::setStyle(QStyleFactory::create("windowsvista"));
+    QString styleSheet = getCurrentThemeStyleSheet();
+    qApp->setStyleSheet(styleSheet);
+
+    // Apply to settings dialog if it exists
+    if (settingsDialog) {
+        settingsDialog->setStyleSheet(styleSheet);
     }
-    QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
-    QDir dir;
-    if (!dir.exists(recordingPath)) {
-        dir.mkpath(recordingPath);
+
+    updateProgramStatus();
+
+    if (executableTable) {
+        executableTable->clearSelection();
+        executableTable->setCurrentCell(-1, -1);
     }
+
+    QApplication::processEvents();
 }
-
-void MainWindow::on_actionStart_Recording_triggered()
-{
-    // This slot is called when "File -> Start Recording" is triggered.
-    // We simply call the same logic as the context menu version.
-    qDebug() << "Main menu 'Start Recording' action triggered.";
-    startRecording();
-}
-
-void MainWindow::on_actionStop_Recording_triggered()
-{
-    // This slot is called when "File -> Stop Recording" is triggered.
-    // We simply call the same logic as the context menu version.
-    qDebug() << "Main menu 'Stop Recording' action triggered.";
-    stopRecording();
-}
-
-

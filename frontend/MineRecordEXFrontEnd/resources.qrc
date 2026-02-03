@@ -1,11 +1,11 @@
 <RCC>
     <qresource prefix="/icons">
         <file>AddPlus.svg</file>
-        <file>Close X.svg</file>
         <file>github-mark-white.svg</file>
         <file>Info.svg</file>
         <file>settings.svg</file>
         <file>startRecord.svg</file>
         <file>stopRecording.svg</file>
+        <file>Close X.svg</file>
     </qresource>
 </RCC>

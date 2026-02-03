@@ -13,15 +13,18 @@
 #include <QInputDialog>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPalette>
+#include "mainwindow.h"
 
-SettingsDialog::SettingsDialog(QWidget *parent, std::function<QString(const QString&, const QString&)> exportFunc)
+SettingsDialog::SettingsDialog(MainWindow *mainWin, QWidget *parent, std::function<QString(const QString&, const QString&)> exportFunc)
     : QDialog(parent),
+    m_MainWindow(mainWin),
     m_exportDataFunction(exportFunc)
 {
     setupUI();
     loadSettings();
     setWindowTitle("Settings");
-    setFixedSize(600, 450);
+    setFixedSize(600, 480);
     setModal(true);
 }
 
@@ -33,9 +36,7 @@ void SettingsDialog::setupUI()
 {
     mainLayout = new QVBoxLayout(this);
     contentLayout = new QHBoxLayout();
-    buttonLayout = new QHBoxLayout();
 
-    // Create category list
     categoryList = new QListWidget(this);
     categoryList->addItem("General");
     categoryList->addItem("Paths");
@@ -43,39 +44,38 @@ void SettingsDialog::setupUI()
     categoryList->setCurrentRow(0);
     categoryList->setMaximumWidth(150);
 
-    // Create stacked widget for settings pages
-    stackedWidget = new QStackedWidget(this);
+    // Initialize with current theme
+    QSettings settings("Stat Tracker", "MineRecordEX");
+    QString initialTheme = settings.value("theme", "Light").toString();
+    updateSidebarTheme(initialTheme);
 
-    // Setup settings pages
+    stackedWidget = new QStackedWidget(this);
     setupGeneralSettings();
     setupPathSettings();
     setupDbSettings();
-
-    // Add pages to stacked widget
     stackedWidget->addWidget(generalSettingsWidget);
     stackedWidget->addWidget(pathSettingsWidget);
     stackedWidget->addWidget(dbSettingsWidget);
 
-    // Create buttons
     okButton = new QPushButton("OK", this);
     cancelButton = new QPushButton("Cancel", this);
     applyButton = new QPushButton("Apply", this);
 
-    // Add buttons to layout
+    buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     buttonLayout->addWidget(okButton);
     buttonLayout->addWidget(cancelButton);
     buttonLayout->addWidget(applyButton);
 
-    // Add widgets to content layout
     contentLayout->addWidget(categoryList);
     contentLayout->addWidget(stackedWidget);
+    contentLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Add all to main layout
     mainLayout->addLayout(contentLayout);
     mainLayout->addLayout(buttonLayout);
+    mainLayout->setSpacing(6);
+    mainLayout->setContentsMargins(9, 9, 9, 9);
 
-    // Connect signals
     connect(categoryList, SIGNAL(currentRowChanged(int)), this, SLOT(onCategoryChanged(int)));
     connect(okButton, SIGNAL(clicked()), this, SLOT(onOkClicked()));
     connect(cancelButton, SIGNAL(clicked()), this, SLOT(onCancelClicked()));
@@ -91,17 +91,13 @@ void SettingsDialog::setupGeneralSettings()
     generalSettingsWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(generalSettingsWidget);
 
-    // Theme settings group
     QGroupBox *themeGroup = new QGroupBox("Theme", this);
     QVBoxLayout *themeLayout = new QVBoxLayout(themeGroup);
 
-    // Theme selection
     QHBoxLayout *themeSelectLayout = new QHBoxLayout();
     QLabel *themeLabel = new QLabel("Application Theme:", this);
     themeComboBox = new QComboBox(this);
 
-    // Add available themes
-    themeComboBox->addItem("Default");
     themeComboBox->addItem("Dark");
     themeComboBox->addItem("Light");
 
@@ -118,7 +114,6 @@ void SettingsDialog::setupPathSettings()
     pathSettingsWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(pathSettingsWidget);
 
-    // Recording path settings
     QGroupBox *recordingGroup = new QGroupBox("Recording Path", this);
     QVBoxLayout *recordingLayout = new QVBoxLayout(recordingGroup);
 
@@ -133,7 +128,6 @@ void SettingsDialog::setupPathSettings()
     recordingLayout->addWidget(recordingLabel);
     recordingLayout->addLayout(recordingPathLayout);
 
-    // Export path settings
     QGroupBox *exportGroup = new QGroupBox("Export Path", this);
     QVBoxLayout *exportLayout = new QVBoxLayout(exportGroup);
 
@@ -148,7 +142,6 @@ void SettingsDialog::setupPathSettings()
     exportLayout->addWidget(exportLabel);
     exportLayout->addLayout(exportPathLayout);
 
-    // Data collection settings
     QGroupBox *dataCollectionGroup = new QGroupBox("Data Collection", this);
     QVBoxLayout *dataCollectionLayout = new QVBoxLayout(dataCollectionGroup);
 
@@ -157,7 +150,6 @@ void SettingsDialog::setupPathSettings()
 
     dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
 
-    // Create Data Export button
     exportDataButton = new QPushButton("Export Data", this);
     exportDataButton->setObjectName("exportDataButton");
     exportDataButton->setToolTip("Exports all collected player data to a CSV file.");
@@ -179,7 +171,7 @@ void SettingsDialog::setupDbSettings()
 
     dbUsernameEdit = new QLineEdit(this);
     dbPasswordEdit = new QLineEdit(this);
-    dbPasswordEdit->setEchoMode(QLineEdit::Password); // Mask password
+    dbPasswordEdit->setEchoMode(QLineEdit::Password);
 
     formLayout->addRow("Username:", dbUsernameEdit);
     formLayout->addRow("Password:", dbPasswordEdit);
@@ -190,27 +182,23 @@ void SettingsDialog::setupDbSettings()
 
 void SettingsDialog::loadSettings()
 {
-    QSettings settings("Minecraft", "Stat Tracker");
+    QSettings settings("Stat Tracker", "MineRecordEX");
 
-    // Load theme
-    currentTheme = settings.value("theme", "Default").toString();
+    currentTheme = settings.value("theme", "Light").toString();
     int themeIndex = themeComboBox->findText(currentTheme);
     if (themeIndex >= 0) {
         themeComboBox->setCurrentIndex(themeIndex);
     }
 
-    // Load paths
     recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
     recordingPathEdit->setText(recordingPath);
 
     exportPath = settings.value("exportPath", QDir::homePath() + "/GameExports").toString();
     exportPathEdit->setText(exportPath);
 
-    // Load data collection setting
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
     enableDataCollectionCheckBox->setChecked(enableDataCollection);
 
-    // --- NEW: Load DB credentials ---
     QString dbUsername = settings.value("dbUsername", "postgres").toString();
     QString dbPassword = settings.value("dbPassword", "a").toString();
     dbUsernameEdit->setText(dbUsername);
@@ -219,66 +207,38 @@ void SettingsDialog::loadSettings()
 
 void SettingsDialog::saveSettings()
 {
-    // Save settings to QSettings
-    QSettings settings("Minecraft", "Stat Tracker");
-
-    // Save theme
+    QSettings settings("Stat Tracker", "MineRecordEX");
     settings.setValue("theme", currentTheme);
-
-    // Save paths
     settings.setValue("recordingPath", recordingPath);
     settings.setValue("exportPath", exportPath);
-
-    // Save data collection setting
     settings.setValue("enableDataCollection", enableDataCollection);
+    settings.setValue("dbUsername", dbUsernameEdit->text());
+    settings.setValue("dbPassword", dbPasswordEdit->text());
 
-    // --- NEW: Save DB credentials and write db_config.json for Python backend ---
-    QString dbUsername = dbUsernameEdit->text();
-    QString dbPassword = dbPasswordEdit->text();
-
-    settings.setValue("dbUsername", dbUsername);
-    settings.setValue("dbPassword", dbPassword);
-
-    // Write machine-readable config file for Python
+    QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
     QJsonObject dbConfig;
     dbConfig["host"] = "127.0.0.1";
     dbConfig["port"] = "5432";
     dbConfig["database"] = "playerdata";
-    dbConfig["user"] = dbUsername;
-    dbConfig["password"] = dbPassword;
+    dbConfig["user"] = dbUsernameEdit->text();
+    dbConfig["password"] = dbPasswordEdit->text();
 
     QJsonDocument doc(dbConfig);
-    QString configPath = "debug/backend/db_config.json";
+    QString configPath = QCoreApplication::applicationDirPath() + "/backend/db_config.json";
     QFile configFile(configPath);
     if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         configFile.write(doc.toJson());
         configFile.close();
         qDebug() << "Wrote db_config.json to:" << configPath;
-    } else {
-        qWarning() << "Failed to write db_config.json to:" << configPath;
     }
 }
 
 void SettingsDialog::applySettings()
 {
-    // Apply theme
-    if (currentTheme == "Dark") {
-        QApplication::setStyle("Fusion");
-        qApp->setPalette(QApplication::style()->standardPalette());
-    } else if (currentTheme == "Light") {
-        QApplication::setStyle("Fusion");
-        qApp->setPalette(QApplication::style()->standardPalette());
-    } else {
-        // Default theme
-        QApplication::setStyle(QStyleFactory::create("windowsvista"));
-    }
-
-    // Create directories if they don't exist
     QDir dir;
     if (!dir.exists(recordingPath)) {
         dir.mkpath(recordingPath);
     }
-
     if (!dir.exists(exportPath)) {
         dir.mkpath(exportPath);
     }
@@ -289,37 +249,92 @@ void SettingsDialog::onCategoryChanged(int index)
     stackedWidget->setCurrentIndex(index);
 }
 
-void SettingsDialog::onOkClicked()
+void SettingsDialog::updateSidebarTheme(const QString &theme)
 {
-    // Save and apply settings
-    currentTheme = themeComboBox->currentText();
-    recordingPath = recordingPathEdit->text();
-    exportPath = exportPathEdit->text();
-    enableDataCollection = enableDataCollectionCheckBox->isChecked();
+    if (theme == "Dark") {
+        QPalette pal = categoryList->palette();
+        pal.setColor(QPalette::Text, Qt::white);
+        pal.setColor(QPalette::HighlightedText, Qt::white);
+        categoryList->setPalette(pal);
 
-    saveSettings();
-    applySettings();
+        categoryList->setStyleSheet(
+            "QListWidget {background-color:transparent; border:none; outline:none; padding:0; margin:0;}"
+            "QListWidget::item {padding:8px 16px; color:white; background:transparent;}"
+            "QListWidget::item:selected {background-color:#2E8B57; color:white;}"
+            "QListWidget::item:hover {background-color:#3A5F4A; color:white;}"
+            );
+    } else {
+        QPalette pal = categoryList->palette();
+        pal.setColor(QPalette::Text, Qt::black);
+        pal.setColor(QPalette::HighlightedText, Qt::white);
+        categoryList->setPalette(pal);
 
-    accept(); // Close the dialog
-}
-
-void SettingsDialog::onCancelClicked()
-{
-    reject(); // Close the dialog without saving
+        categoryList->setStyleSheet(
+            "QListWidget {background-color:transparent; border:none; outline:none; padding:0; margin:0;}"
+            "QListWidget::item {padding:8px 16px; color:black; background:transparent;}"
+            "QListWidget::item:selected {background-color:#2E8B57; color:white;}"
+            "QListWidget::item:hover {background-color:#3A5F4A; color:black;}"
+            );
+    }
 }
 
 void SettingsDialog::onApplyClicked()
 {
-    // Save and apply settings
-    currentTheme = themeComboBox->currentText();
-    recordingPath = recordingPathEdit->text();
-    exportPath = exportPathEdit->text();
-    enableDataCollection = enableDataCollectionCheckBox->isChecked();
+    applySettingsInternal();
+}
 
-    saveSettings();
-    applySettings();
+void SettingsDialog::onOkClicked()
+{
+    applySettingsInternal();
+    QMessageBox::information(this, "Settings", "All settings applied successfully!");
+    accept();
+}
 
-    QMessageBox::information(this, "Settings", "Settings applied successfully!");
+void SettingsDialog::applySettingsInternal()
+{
+    QString selectedTheme = themeComboBox->currentText();
+    QString recordingPath = recordingPathEdit->text();
+    QString exportPath = exportPathEdit->text();
+    bool enableDataCollection = enableDataCollectionCheckBox->isChecked();
+    QString dbUsername = dbUsernameEdit->text();
+    QString dbPassword = dbPasswordEdit->text();
+
+    QSettings settings("Stat Tracker", "MineRecordEX");
+    settings.setValue("theme", selectedTheme);
+    settings.setValue("recordingPath", recordingPath);
+    settings.setValue("exportPath", exportPath);
+    settings.setValue("enableDataCollection", enableDataCollection);
+    settings.setValue("dbUsername", dbUsername);
+    settings.setValue("dbPassword", dbPassword);
+
+    QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
+    QJsonObject dbConfig;
+    dbConfig["host"] = "127.0.0.1";
+    dbConfig["port"] = "5432";
+    dbConfig["database"] = "playerdata";
+    dbConfig["user"] = dbUsername;
+    dbConfig["password"] = dbPassword;
+
+    QJsonDocument doc(dbConfig);
+    QString configPath = QCoreApplication::applicationDirPath() + "/backend/db_config.json";
+    QFile configFile(configPath);
+    if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        configFile.write(doc.toJson());
+        configFile.close();
+    }
+
+    // ✅ UPDATE SIDEBAR IMMEDIATELY
+    updateSidebarTheme(selectedTheme);
+
+    // Apply to main window
+    if (m_MainWindow) {
+        m_MainWindow->applySettings();
+    }
+}
+
+void SettingsDialog::onCancelClicked()
+{
+    reject();
 }
 
 void SettingsDialog::onBrowseRecordingPath()
@@ -340,14 +355,13 @@ void SettingsDialog::onBrowseExportPath()
 
 void SettingsDialog::onThemeChanged(const QString &theme)
 {
-    // This is just for preview, actual theme change happens on apply
     currentTheme = theme;
+    // Optional: live preview
+    // updateSidebarTheme(theme);
 }
 
 void SettingsDialog::onExportDataClicked()
 {
-    // For now, let's just export data for the first player in the list.
-    // In a real app, you'd have a selection dropdown.
     bool ok;
     QString playerName = QInputDialog::getText(this, "Export Data",
                                                "Enter the exact player name to export:",
@@ -358,10 +372,7 @@ void SettingsDialog::onExportDataClicked()
         return;
     }
 
-    // Call the function that was passed from MainWindow
     if (m_exportDataFunction) {
-        // FIX: Call the function with QString arguments, not std::string.
-        // The lambda in MainWindow handles the Python types and returns a QString.
         QString result_qstring = m_exportDataFunction(playerName, exportPath);
         QMessageBox::information(this, "Export Complete", result_qstring);
     } else {
