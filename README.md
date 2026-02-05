@@ -8,5 +8,4 @@ Please note that a large portion of the codebase for this application was develo
 ## Install Instructions:
 1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application)
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-3. (Optional): If you notice that for some reason the python backend is having issues, go ahead and install 64-bit Python version 3.13.7. The download links for that can be found [here](https://www.python.org/downloads/release/python-3137/)
-4. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
+3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
