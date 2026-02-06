@@ -23,7 +23,6 @@
 #include <QScrollBar>
 #include <QUuid>
 #include <QScopedValueRollback>
-#include <windows.h>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -165,7 +164,7 @@ MainWindow::MainWindow(QWidget *parent) :
     executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    // CRITICAL FIX: Install event filter on QApplication, not table
+    // CRITICAL: Install event filter on QApplication only (NOT on table)
     qApp->installEventFilter(this);
 
     // Load program data
@@ -186,6 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Connect cleanup before quit
     connect(qApp, &QApplication::aboutToQuit, this, &MainWindow::cleanupBeforeQuit);
 }
+
 MainWindow::~MainWindow()
 {
     // Cleanup is handled by cleanupBeforeQuit()
@@ -468,9 +468,6 @@ void MainWindow::stopRecording()
 
 bool MainWindow::startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName)
 {
-    // Hide cursor during recording
-    ShowCursor(FALSE);
-
     // Launch game
     QProcess *gameProcess = new QProcess(this);
     gameProcess->setWorkingDirectory(QFileInfo(executablePath).absolutePath());
@@ -479,11 +476,10 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
     if (!gameProcess->waitForStarted(5000)) {
         qDebug() << "Failed to start game process:" << gameProcess->errorString();
         delete gameProcess;
-        ShowCursor(TRUE); // Restore cursor
         return false;
     }
 
-    // Launch FFmpeg for screen recording
+    // Launch FFmpeg for screen recording WITH mouse cursor
     QProcess *ffmpegProcess = new QProcess(this);
     QString videoPath = recordingDir + "/" + gameName + "_" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".mp4";
 
@@ -492,6 +488,7 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
                << "-framerate" << "30"
                << "-probesize" << "10M"
                << "-i" << "desktop"
+               << "-draw_mouse" << "1"        // ← KEEPS MOUSE VISIBLE
                << "-c:v" << "libx264"
                << "-preset" << "ultrafast"
                << "-crf" << "23"
@@ -506,7 +503,6 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
         gameProcess->terminate();
         delete gameProcess;
         delete ffmpegProcess;
-        ShowCursor(TRUE); // Restore cursor
         return false;
     }
 
@@ -554,9 +550,6 @@ bool MainWindow::stopRecordingProcess(const QString &gameName)
             m_activeProcesses.remove(gameName);
         }
     }
-
-    // Restore cursor
-    ShowCursor(TRUE);
 
     if (enableDataCollection && m_pythonWrapper) {
         m_pythonWrapper->stopDataService();
@@ -612,36 +605,47 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         QPoint globalPos = mouseEvent->globalPosition().toPoint();
-        QWidget *clickedWidget = qApp->widgetAt(globalPos);
+        QWidget *clickedWidget = QApplication::widgetAt(globalPos);
 
-        // Only process deselection if we have a valid executable table
         if (executableTable) {
-            // Check if click is on the table or its headers
-            bool clickedOnTable = false;
-            QWidget *walker = clickedWidget;
-            while (walker) {
-                if (walker == executableTable ||
-                    walker == executableTable->horizontalHeader() ||
-                    walker == executableTable->verticalHeader()) {
-                    clickedOnTable = true;
+            // Check if click is on table or its components
+            bool isPartOfTable = false;
+            QWidget *checkWidget = clickedWidget;
+            while (checkWidget != nullptr) {
+                if (checkWidget == executableTable ||
+                    checkWidget == executableTable->viewport() ||
+                    checkWidget == executableTable->horizontalHeader() ||
+                    checkWidget == executableTable->verticalHeader()) {
+                    isPartOfTable = true;
                     break;
                 }
-                walker = walker->parentWidget();
+                checkWidget = checkWidget->parentWidget();
             }
 
-            // Check if click is on menu or menubar
-            bool clickedOnMenu = false;
-            walker = clickedWidget;
-            while (walker) {
-                if (qobject_cast<QMenuBar*>(walker) || qobject_cast<QMenu*>(walker)) {
-                    clickedOnMenu = true;
+            // Check if click is on context menu
+            bool isContextMenu = false;
+            checkWidget = clickedWidget;
+            while (checkWidget != nullptr) {
+                if (checkWidget->inherits("QMenu")) {
+                    isContextMenu = true;
                     break;
                 }
-                walker = walker->parentWidget();
+                checkWidget = checkWidget->parentWidget();
             }
 
-            // Deselect only if click is NOT on table/headers AND NOT on menu/menubar
-            if (!clickedOnTable && !clickedOnMenu) {
+            // Check if click is on menubar
+            bool isMenuBar = false;
+            checkWidget = clickedWidget;
+            while (checkWidget != nullptr) {
+                if (qobject_cast<QMenuBar*>(checkWidget)) {
+                    isMenuBar = true;
+                    break;
+                }
+                checkWidget = checkWidget->parentWidget();
+            }
+
+            // Only deselect if clicking outside table, context menu, and menubar
+            if (!isPartOfTable && !isContextMenu && !isMenuBar) {
                 executableTable->clearSelection();
                 executableTable->setCurrentCell(-1, -1);
                 m_lastSelectedExecutablePath.clear();
