@@ -12,8 +12,12 @@ namespace py = pybind11;
 #include <QDir>
 #include <QCoreApplication>
 #include <QFileInfo>
-#include <QApplication>
+#include <QFile>
 #include <QThread>
+#include <memory>
+
+// Global shutdown flag
+bool g_pythonShuttingDown = false;
 
 // --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
@@ -22,11 +26,6 @@ struct PythonBackendWrapperPrivate {
     QProcess* serverProcess = nullptr;
     std::unique_ptr<py::scoped_interpreter> interpreter; // Manages Python interpreter lifecycle
 };
-
-// Helper function to cast d_ptr
-PythonBackendWrapperPrivate* PythonBackendWrapper::d_ptr_cast() {
-    return d_ptr;
-}
 
 PythonBackendWrapper::PythonBackendWrapper()
     : d_ptr(new PythonBackendWrapperPrivate())
@@ -37,7 +36,7 @@ PythonBackendWrapper::PythonBackendWrapper()
 
 PythonBackendWrapper::~PythonBackendWrapper()
 {
-    // Don't call shutdown here - handled by MainWindow::cleanupBeforeQuit()
+    // DO NOT call shutdown() here - handled by MainWindow::cleanupBeforeQuit()
     delete d_ptr;
 }
 
@@ -46,7 +45,7 @@ void PythonBackendWrapper::initialize()
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     try {
         // Use application directory (where .exe actually runs)
-        QString appDir = QApplication::applicationDirPath();
+        QString appDir = QCoreApplication::applicationDirPath();
         QString backendPath = appDir + "/backend";
         QString pythonPath = appDir + "/python";
 
@@ -72,6 +71,9 @@ void PythonBackendWrapper::initialize()
 
 void PythonBackendWrapper::shutdown()
 {
+    // SET SHUTDOWN FLAG FIRST
+    g_pythonShuttingDown = true;
+
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) {
         return;
@@ -109,7 +111,7 @@ void PythonBackendWrapper::startDataService()
         return;
     }
     // START THE STANDALONE DATA RECEIVER SERVER
-    QString appDir = QApplication::applicationDirPath();
+    QString appDir = QCoreApplication::applicationDirPath();
     QString backendPath = appDir + "/backend";
     QString serverScript = backendPath + "/data_receiver.py";
     QString pythonExe = appDir + "/python/python.exe"; // Use bundled Python
@@ -135,7 +137,7 @@ void PythonBackendWrapper::stopDataService()
         qDebug() << "Stopping data receiver server process...";
 
         // CREATE SHUTDOWN SIGNAL FILE
-        QString shutdownFile = QApplication::applicationDirPath() + "/data_receiver.shutdown";
+        QString shutdownFile = QCoreApplication::applicationDirPath() + "/data_receiver.shutdown";
         QFile file(shutdownFile);
         if (file.open(QIODevice::WriteOnly)) {
             file.write("shutdown");
@@ -164,8 +166,14 @@ void PythonBackendWrapper::stopDataService()
     QThread::msleep(50);
 }
 
-std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath, const std::string& recordingPath, bool enableDataCollection)
+std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath,
+                                                 const std::string& recordingPath, bool enableDataCollection)
 {
+    // CHECK SHUTDOWN FLAG FIRST
+    if (g_pythonShuttingDown) {
+        return "Error: Python is shutting down.";
+    }
+
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) return "Error: Python backend is not initialized.";
     try {
@@ -179,6 +187,11 @@ std::string PythonBackendWrapper::startRecording(const std::string& gameName, co
 
 std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
 {
+    // CHECK SHUTDOWN FLAG FIRST
+    if (g_pythonShuttingDown) {
+        return "Error: Python is shutting down.";
+    }
+
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) return "Error: Python backend is not initialized.";
     try {
@@ -192,6 +205,11 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
 
 std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName, const std::string& exportPath)
 {
+    // CHECK SHUTDOWN FLAG FIRST
+    if (g_pythonShuttingDown) {
+        return "Error: Python is shutting down.";
+    }
+
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (!d->isInitialized) {
         qCritical() << "[WRAPPER] Cannot export: Python backend is not initialized.";
