@@ -54,7 +54,7 @@ public slots:
     void stopRecording();
 
 private slots:
-    void cleanupBeforeQuit();  // ← CRITICAL: Handles proper shutdown
+    void cleanupBeforeQuit();
     void handleDataCollectionError(QProcess::ProcessError error);
     void onAppFocusChanged(QWidget *old, QWidget *now);
 
@@ -92,11 +92,13 @@ private:
     QDialog *infoDialog;
     SettingsDialog *settingsDialog;
     QString activeRecordingId;
-    QProcess *dataCollectionProcess;
     bool enableDataCollection;
 
     QString m_lastSelectedExecutablePath;
     bool m_isRecordingActionInProgress = false;
+
+    // Store active processes for cleanup
+    QMap<QString, QProcess*> m_activeProcesses;
 };
 
 #endif // MAINWINDOW_H

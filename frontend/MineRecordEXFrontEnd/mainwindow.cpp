@@ -39,7 +39,6 @@ MainWindow::MainWindow(QWidget *parent) :
     infoDialog(nullptr),
     settingsDialog(nullptr),
     activeRecordingId(""),
-    dataCollectionProcess(nullptr),
     enableDataCollection(false),
     m_lastSelectedExecutablePath(""),
     m_isRecordingActionInProgress(false)
@@ -158,32 +157,15 @@ MainWindow::MainWindow(QWidget *parent) :
         m_pythonWrapper->startDataService();
     }
 
-    qApp->installEventFilter(this);
+    // Connect cleanup before quit
+    connect(qApp, &QApplication::aboutToQuit, this, &MainWindow::cleanupBeforeQuit);
 }
-
-
 
 MainWindow::~MainWindow()
 {
-    qDebug() << "Stopping global Python data collection service...";
-    if (m_pythonWrapper) {
-        m_pythonWrapper->stopDataService();
-        delete m_pythonWrapper;
-        m_pythonWrapper = nullptr;
-    }
-
-    saveProgramData();
-    qDeleteAll(programs);
-    programs.clear();
-
-    if (infoDialog) {
-        delete infoDialog;
-    }
-    if (settingsDialog) {
-        delete settingsDialog;
-    }
-    delete ui;
+    // Cleanup is handled by cleanupBeforeQuit()
 }
+
 void MainWindow::setupUI()
 {
     centralWidget = new QWidget(this);
@@ -212,6 +194,7 @@ void MainWindow::onAppFocusChanged(QWidget *old, QWidget *now)
         executableTable->setCurrentCell(-1, -1);
     }
 }
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Check if any game is currently being recorded
@@ -256,7 +239,7 @@ void MainWindow::initializePythonBackend()
 
 void MainWindow::shutdownPythonBackend()
 {
-    // Handled in destructor
+    // Handled in cleanupBeforeQuit()
 }
 
 QString MainWindow::startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath)
@@ -276,6 +259,34 @@ QString MainWindow::stopPythonRecording(const QString &recordingId)
     if (!m_pythonWrapper) return "Error: Python wrapper is null.";
     std::string result = m_pythonWrapper->stopRecording(recordingId.toStdString());
     return QString::fromStdString(result);
+}
+
+// --- NEW: Required cleanup slot ---
+void MainWindow::cleanupBeforeQuit()
+{
+    qDebug() << "Stopping global Python data collection service...";
+    if (m_pythonWrapper) {
+        m_pythonWrapper->stopDataService();
+        m_pythonWrapper->shutdown();
+        delete m_pythonWrapper;
+        m_pythonWrapper = nullptr;
+    }
+
+    // Stop all FFmpeg processes
+    for (auto it = m_activeProcesses.begin(); it != m_activeProcesses.end(); ++it) {
+        QProcess *process = it.value();
+        if (process && process->state() == QProcess::Running) {
+            process->terminate();
+            if (!process->waitForFinished(2000)) {
+                process->kill();
+                process->waitForFinished(1000);
+            }
+            delete process;
+        }
+    }
+    m_activeProcesses.clear();
+
+    saveProgramData();
 }
 
 // --- Recording Slots ---
@@ -356,7 +367,6 @@ void MainWindow::startRecording()
         }
         saveProgramData();
 
-
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
     } else {
@@ -365,7 +375,6 @@ void MainWindow::startRecording()
                               "Failed to start recording process.");
     }
 }
-
 
 void MainWindow::stopRecording()
 {
@@ -417,7 +426,6 @@ void MainWindow::stopRecording()
         }
         saveProgramData();
 
-
         activeRecordingId.clear();
         QMessageBox::information(this, "Recording Stopped",
                                  QString("Recording stopped for %1").arg(gameName));
@@ -429,6 +437,7 @@ void MainWindow::stopRecording()
 
 bool MainWindow::startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName)
 {
+    // Launch game
     QProcess *gameProcess = new QProcess(this);
     gameProcess->setWorkingDirectory(QFileInfo(executablePath).absolutePath());
     gameProcess->start(executablePath);
@@ -438,6 +447,36 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
         delete gameProcess;
         return false;
     }
+
+    // Launch FFmpeg for screen recording
+    QProcess *ffmpegProcess = new QProcess(this);
+    QString videoPath = recordingDir + "/" + gameName + "_" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".mp4";
+
+    QStringList ffmpegArgs;
+    ffmpegArgs << "-f" << "gdigrab"
+               << "-framerate" << "30"
+               << "-probesize" << "10M"
+               << "-i" << "desktop"
+               << "-c:v" << "libx264"
+               << "-preset" << "ultrafast"
+               << "-crf" << "23"
+               << "-pix_fmt" << "yuv420p"
+               << "-y"
+               << videoPath;
+
+    ffmpegProcess->start("ffmpeg", ffmpegArgs);
+
+    if (!ffmpegProcess->waitForStarted(5000)) {
+        qDebug() << "Failed to start FFmpeg:" << ffmpegProcess->errorString();
+        gameProcess->terminate();
+        delete gameProcess;
+        delete ffmpegProcess;
+        return false;
+    }
+
+    // Store both processes for later cleanup
+    m_activeProcesses[gameName] = gameProcess;
+    m_activeProcesses[gameName + "_ffmpeg"] = ffmpegProcess;
 
     if (enableDataCollection && m_pythonWrapper) {
         m_pythonWrapper->startDataService();
@@ -449,6 +488,37 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
 
 bool MainWindow::stopRecordingProcess(const QString &gameName)
 {
+    // Stop FFmpeg process
+    QString ffmpegKey = gameName + "_ffmpeg";
+    if (m_activeProcesses.contains(ffmpegKey)) {
+        QProcess *ffmpegProcess = m_activeProcesses[ffmpegKey];
+        if (ffmpegProcess && ffmpegProcess->state() == QProcess::Running) {
+            ffmpegProcess->write("q"); // Send 'q' to gracefully quit FFmpeg
+            ffmpegProcess->waitForFinished(5000);
+            if (ffmpegProcess->state() == QProcess::Running) {
+                ffmpegProcess->kill();
+                ffmpegProcess->waitForFinished(1000);
+            }
+            delete ffmpegProcess;
+            m_activeProcesses.remove(ffmpegKey);
+        }
+    }
+
+    // Stop game process
+    if (m_activeProcesses.contains(gameName)) {
+        QProcess *gameProcess = m_activeProcesses[gameName];
+        if (gameProcess && gameProcess->state() == QProcess::Running) {
+            gameProcess->terminate();
+            gameProcess->waitForFinished(2000);
+            if (gameProcess->state() == QProcess::Running) {
+                gameProcess->kill();
+                gameProcess->waitForFinished(1000);
+            }
+            delete gameProcess;
+            m_activeProcesses.remove(gameName);
+        }
+    }
+
     if (enableDataCollection && m_pythonWrapper) {
         m_pythonWrapper->stopDataService();
     }
@@ -497,6 +567,7 @@ void MainWindow::changeEvent(QEvent *event)
     }
     QMainWindow::changeEvent(event);
 }
+
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == executableTable && event->type() == QEvent::FocusIn) {
@@ -543,7 +614,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     }
     return QMainWindow::eventFilter(obj, event);
 }
-
 
 void MainWindow::on_actionAdd_Game_triggered()
 {
@@ -702,7 +772,6 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
     contextMenu->popup(executableTable->viewport()->mapToGlobal(pos));
 }
-
 
 void MainWindow::removeGame()
 {
