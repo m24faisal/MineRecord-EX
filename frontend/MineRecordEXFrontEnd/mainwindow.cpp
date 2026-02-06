@@ -23,8 +23,7 @@
 #include <QScrollBar>
 #include <QUuid>
 #include <QScopedValueRollback>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <windows.h>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -373,6 +372,13 @@ void MainWindow::startRecording()
         return;
     }
 
+    // Update ProgramInfo BEFORE starting process
+    QString path = nameItem->data(Qt::UserRole).toString();
+    if (programs.contains(path)) {
+        programs[path]->setRecording(true);
+    }
+    saveProgramData();
+
     bool success = startRecordingProcess(executablePath, recordingDir, gameName);
 
     if (success) {
@@ -383,23 +389,20 @@ void MainWindow::startRecording()
             recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
         }
 
-        // Update ProgramInfo
-        QString path = nameItem->data(Qt::UserRole).toString();
-        if (programs.contains(path)) {
-            programs[path]->setRecording(true);
-        }
-        saveProgramData();
-
-
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
     } else {
         activeRecordingId.clear();
+        // Revert ProgramInfo state
+        if (programs.contains(path)) {
+            programs[path]->setRecording(false);
+        }
+        saveProgramData();
+
         QMessageBox::critical(this, "Recording Failed",
                               "Failed to start recording process.");
     }
 }
-
 
 void MainWindow::stopRecording()
 {
@@ -434,6 +437,13 @@ void MainWindow::stopRecording()
         return;
     }
 
+    // Update ProgramInfo BEFORE stopping process
+    QString path = nameItem->data(Qt::UserRole).toString();
+    if (programs.contains(path)) {
+        programs[path]->setRecording(false);
+    }
+    saveProgramData();
+
     bool success = stopRecordingProcess(gameName);
 
     if (success) {
@@ -443,14 +453,6 @@ void MainWindow::stopRecording()
             recordingItem->setText("No");
             recordingItem->setBackground(Qt::NoBrush);
         }
-
-        // Update ProgramInfo
-        QString path = nameItem->data(Qt::UserRole).toString();
-        if (programs.contains(path)) {
-            programs[path]->setRecording(false);
-        }
-        saveProgramData();
-
 
         activeRecordingId.clear();
         QMessageBox::information(this, "Recording Stopped",
@@ -463,6 +465,9 @@ void MainWindow::stopRecording()
 
 bool MainWindow::startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName)
 {
+    // Hide cursor during recording
+    ShowCursor(FALSE);
+
     // Launch game
     QProcess *gameProcess = new QProcess(this);
     gameProcess->setWorkingDirectory(QFileInfo(executablePath).absolutePath());
@@ -471,6 +476,7 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
     if (!gameProcess->waitForStarted(5000)) {
         qDebug() << "Failed to start game process:" << gameProcess->errorString();
         delete gameProcess;
+        ShowCursor(TRUE); // Restore cursor
         return false;
     }
 
@@ -497,6 +503,7 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
         gameProcess->terminate();
         delete gameProcess;
         delete ffmpegProcess;
+        ShowCursor(TRUE); // Restore cursor
         return false;
     }
 
@@ -544,6 +551,9 @@ bool MainWindow::stopRecordingProcess(const QString &gameName)
             m_activeProcesses.remove(gameName);
         }
     }
+
+    // Restore cursor
+    ShowCursor(TRUE);
 
     if (enableDataCollection && m_pythonWrapper) {
         m_pythonWrapper->stopDataService();
@@ -619,9 +629,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         bool clickedOnMenu = false;
         QWidget *walker = clickedWidget;
         while (walker) {
-            if (qobject_cast<QMenuBar*>(walker) ||
-                walker->inherits("QMenu") ||
-                walker->metaObject()->className() == QString("QMenu")) {
+            if (qobject_cast<QMenuBar*>(walker)) {
+                clickedOnMenu = true;
+                break;
+            }
+            if (QMenu *menu = qobject_cast<QMenu*>(walker)) {
                 clickedOnMenu = true;
                 break;
             }
@@ -640,7 +652,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     }
     return QMainWindow::eventFilter(obj, event);
 }
-
 
 void MainWindow::on_actionAdd_Game_triggered()
 {
@@ -799,7 +810,6 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
     contextMenu->popup(executableTable->viewport()->mapToGlobal(pos));
 }
-
 
 void MainWindow::removeGame()
 {
