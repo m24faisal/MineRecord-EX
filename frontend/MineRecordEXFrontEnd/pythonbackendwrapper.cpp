@@ -1,10 +1,7 @@
 // pythonbackendwrapper.cpp
 #include "pythonbackendwrapper.h"
-// --- INCLUDES IN THE CORRECT ORDER ---
-// 1. Include pybind11 headers first.
 #include <pybind11/embed.h>
 namespace py = pybind11;
-// 2. THEN include Qt headers.
 #include <QDebug>
 #include <QProcess>
 #include <QDir>
@@ -30,7 +27,6 @@ void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     try {
-        // --- THE FIX: USE AN ABSOLUTE PATH TO THE BACKEND FOLDER ---
         // Get the path of the current executable
         QFileInfo exeInfo(QCoreApplication::applicationFilePath());
         QString exePath = exeInfo.absolutePath();
@@ -85,7 +81,6 @@ void PythonBackendWrapper::startDataService()
     // --- START THE STANDALONE DATA RECEIVER SERVER ---
     // This process will run the data_receiver.py script
     d->serverProcess = new QProcess();
-    // --- FIX: DECLARE backendPath LOCALLY ---
     QString backendPath;
     {
         // Get the path of the current executable

@@ -112,7 +112,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(executableTable, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showContextMenu);
 
-    // ✅ SAFE RECORDING ACTION CONNECTIONS (NO AUTO-CONNECTION RISK)
+    // SAFE RECORDING ACTION CONNECTIONS (NO AUTO-CONNECTION RISK)
     connect(ui->fileActionStartRecording, &QAction::triggered, this, [this]() {
         static bool inProgress = false;
         if (!inProgress) {
@@ -197,7 +197,7 @@ void MainWindow::setupUI()
     executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     executableTable->setSelectionMode(QAbstractItemView::SingleSelection);
     executableTable->setAlternatingRowColors(true);
-    executableTable->setFocusPolicy(Qt::StrongFocus); // ✅ Enable focus tracking
+    executableTable->setFocusPolicy(Qt::StrongFocus); // Enable focus tracking
 
     layout->addWidget(executableTable);
     setCentralWidget(centralWidget);
@@ -342,21 +342,20 @@ void MainWindow::startRecording()
     bool success = startRecordingProcess(executablePath, recordingDir, gameName);
 
     if (success) {
-        // ✅ Update only the specific row
+        // Update only the specific row
         QTableWidgetItem *recordingItem = executableTable->item(row, 3);
         if (recordingItem) {
             recordingItem->setText("Yes");
             recordingItem->setBackground(QBrush(QColor(255, 165, 0)));
         }
 
-        // ✅ Update ProgramInfo
+        // Update ProgramInfo
         QString path = nameItem->data(Qt::UserRole).toString();
         if (programs.contains(path)) {
             programs[path]->setRecording(true);
         }
         saveProgramData();
 
-        // ❌ NO updateProgramStatus() here → prevents duplicate triggers
 
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
@@ -404,21 +403,20 @@ void MainWindow::stopRecording()
     bool success = stopRecordingProcess(gameName);
 
     if (success) {
-        // ✅ Update only the specific row
+        // Update only the specific row
         QTableWidgetItem *recordingItem = executableTable->item(row, 3);
         if (recordingItem) {
             recordingItem->setText("No");
             recordingItem->setBackground(Qt::NoBrush);
         }
 
-        // ✅ Update ProgramInfo
+        // Update ProgramInfo
         QString path = nameItem->data(Qt::UserRole).toString();
         if (programs.contains(path)) {
             programs[path]->setRecording(false);
         }
         saveProgramData();
 
-        // ❌ NO updateProgramStatus() here
 
         activeRecordingId.clear();
         QMessageBox::information(this, "Recording Stopped",
@@ -587,7 +585,7 @@ void MainWindow::on_actionSettings_triggered()
                 return QString::fromStdString(result);
             }
             );
-        // ✅ Apply current theme to settings dialog immediately
+        // Apply current theme to settings dialog immediately
         settingsDialog->setStyleSheet(getCurrentThemeStyleSheet());
     }
     settingsDialog->show();
@@ -599,7 +597,7 @@ void MainWindow::updateProgramStatus()
 {
     if (!executableTable) return;
 
-    // ✅ Save the EXECUTABLE PATH of the selected item (not just row index)
+    // Save the EXECUTABLE PATH of the selected item (not just row index)
     QString selectedExecutablePath;
     int currentRow = executableTable->currentRow();
     if (currentRow >= 0 && currentRow < executableTable->rowCount()) {
@@ -639,7 +637,7 @@ void MainWindow::updateProgramStatus()
         QTableWidgetItem *timeItem = new QTableWidgetItem(timePlayed);
         QTableWidgetItem *recordingItem = new QTableWidgetItem(isRecording ? "Yes" : "No");
 
-        // ✅ RESTORE STATUS HIGHLIGHTS
+        // RESTORE STATUS HIGHLIGHTS
         if (!isRunning) {
             runningItem->setBackground(QBrush(QColor(255, 182, 193))); // Light pink/red for "Not Running"
         } else {
@@ -656,7 +654,7 @@ void MainWindow::updateProgramStatus()
         executableTable->setItem(newRow, 2, timeItem);
         executableTable->setItem(newRow, 3, recordingItem);
 
-        // ✅ Track where our selected item is
+        // Track where our selected item is
         if (!selectedExecutablePath.isEmpty() && path == selectedExecutablePath) {
             targetRow = newRow;
         }
@@ -664,7 +662,7 @@ void MainWindow::updateProgramStatus()
         newRow++;
     }
 
-    // ✅ Restore selection using EXECUTABLE PATH match (not row index)
+    // Restore selection using EXECUTABLE PATH match (not row index)
     if (targetRow >= 0) {
         executableTable->selectRow(targetRow);
     }
@@ -690,7 +688,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     ProgramInfo *program = programs.value(path, nullptr);
     if (!program) return;
 
-    // ✅ CRITICAL: Store the path for use in action slots
+    // CRITICAL: Store the path for use in action slots
     m_rightClickedPath = path;
 
     // Keep actions enabled
@@ -708,7 +706,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
 void MainWindow::removeGame()
 {
-    // ✅ Use the stored right-clicked path
+    // Use the stored right-clicked path
     if (m_rightClickedPath.isEmpty()) return;
 
     if (!programs.contains(m_rightClickedPath)) return;
@@ -803,12 +801,11 @@ void MainWindow::loadProgramData()
             program->setTimePlayedInSeconds(timePlayed);
             program->setRecording(isRecording);
             programs.insert(path, program);
-            // ✅ REMOVED: Don't insert rows directly here
         }
     }
     settings.endArray();
 
-    // ✅ Let updateProgramStatus() handle table population
+    // Let updateProgramStatus() handle table population
     // This ensures consistent theming and no auto-selection
     if (executableTable) {
         updateProgramStatus();

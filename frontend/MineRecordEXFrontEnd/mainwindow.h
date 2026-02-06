@@ -48,8 +48,6 @@ public slots:
     void on_actionGitHub_triggered();
     void on_actionInfo_triggered();
     void on_actionSettings_triggered();
-    //void on_actionStart_Recording_triggered();
-    //void on_actionStop_Recording_triggered();
     void updateProgramStatus();
     void showContextMenu(const QPoint &pos);
     void removeGame();
@@ -73,14 +71,13 @@ private:
     bool startRecordingProcess(const QString &executablePath, const QString &recordingDir, const QString &gameName);
     bool stopRecordingProcess(const QString &gameName);
 
-    // Python Backend Management (Methods are now simpler)
+    // Python Backend Management
     void initializePythonBackend();
     void shutdownPythonBackend();
     QString startPythonRecording(const QString &gameName, const QString &gamePath, const QString &recordingPath);
     QString stopPythonRecording(const QString &recordingId);
 
     // --- Member Variables ---
-    // NOTE: The order here is important. The constructor's initializer list must match this order.
 
     Ui::MainWindow *ui;
     PythonBackendWrapper *m_pythonWrapper;

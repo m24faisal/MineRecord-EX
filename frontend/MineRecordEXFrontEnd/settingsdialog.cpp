@@ -323,7 +323,6 @@ void SettingsDialog::applySettingsInternal()
         configFile.close();
     }
 
-    // ✅ UPDATE SIDEBAR IMMEDIATELY
     updateSidebarTheme(selectedTheme);
 
     // Apply to main window

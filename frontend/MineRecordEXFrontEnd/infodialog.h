@@ -22,6 +22,7 @@ private:
 
     QLabel *titleLabel;
     QLabel *infoLabel;
+    QLabel *footnoteLabel;
     QPushButton *okButton;
     QVBoxLayout *mainLayout;
 };
