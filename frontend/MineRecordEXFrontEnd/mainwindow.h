@@ -12,6 +12,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QCloseEvent>
+#include <QSet>  // ← ADDED FOR activeRecordingPaths
 #include "ui_mainwindow.h"
 
 // --- Forward declare the Qt-generated UI namespace ---
@@ -99,6 +100,9 @@ private:
 
     // Store active processes for cleanup
     QMap<QString, QProcess*> m_activeProcesses;
+
+    // Track active recordings independently from game running state
+    QSet<QString> activeRecordingPaths;  // ← CRITICAL FIX
 };
 
 #endif // MAINWINDOW_H

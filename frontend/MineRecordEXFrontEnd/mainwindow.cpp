@@ -224,9 +224,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Check if any game is currently being recorded
     bool hasActiveRecording = false;
-    for (auto it = programs.begin(); it != programs.end(); ++it) {
-        ProgramInfo *program = it.value();
-        if (program && program->isRecording()) {
+    for (const QString& path : activeRecordingPaths) {
+        if (programs.contains(path)) {
             hasActiveRecording = true;
             break;
         }
@@ -237,14 +236,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
                                  "Active recordings detected. Stopping and saving...");
 
         // Stop all active recordings via Python backend
-        for (auto it = programs.begin(); it != programs.end(); ++it) {
-            ProgramInfo *program = it.value();
-            if (program && program->isRecording()) {
+        for (const QString& path : activeRecordingPaths) {
+            if (programs.contains(path)) {
+                ProgramInfo *program = programs[path];
                 QString result = stopPythonRecording(program->recordingId());
                 qDebug() << "Stopped recording for:" << program->name() << "Result:" << result;
                 program->setRecording(false);
             }
         }
+        activeRecordingPaths.clear();
         saveProgramData(); // Update UI state (optional but clean)
     }
 
@@ -380,6 +380,7 @@ void MainWindow::startRecording()
     if (programs.contains(path)) {
         programs[path]->setRecording(true);
     }
+    activeRecordingPaths.insert(path);  // ← CRITICAL: Track recording independently
     saveProgramData();
 
     bool success = startRecordingProcess(executablePath, recordingDir, gameName);
@@ -395,6 +396,7 @@ void MainWindow::startRecording()
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
     } else {
+        activeRecordingPaths.remove(path);  // ← CRITICAL: Clean up on failure
         activeRecordingId.clear();
         // Revert ProgramInfo state
         if (programs.contains(path)) {
@@ -445,6 +447,7 @@ void MainWindow::stopRecording()
     if (programs.contains(path)) {
         programs[path]->setRecording(false);
     }
+    activeRecordingPaths.remove(path);  // ← CRITICAL: Remove from active recordings
     saveProgramData();
 
     bool success = stopRecordingProcess(gameName);
@@ -737,7 +740,8 @@ void MainWindow::updateProgramStatus()
         }
 
         QString timePlayed = program->formattedTimePlayed();
-        bool isRecording = program->isRecording();
+        // Use activeRecordingPaths instead of program->isRecording()
+        bool isRecording = activeRecordingPaths.contains(path);  // ← CRITICAL FIX
 
         // Create FRESH items
         QTableWidgetItem *nameItem = new QTableWidgetItem(program->name());
