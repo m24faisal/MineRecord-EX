@@ -44,7 +44,7 @@ void SettingsDialog::setupUI()
     categoryList->setCurrentRow(0);
     categoryList->setMaximumWidth(150);
 
-    // Initialize with current theme
+    // Initialize with current theme from QSettings
     QSettings settings("Stat Tracker", "MineRecordEX");
     QString initialTheme = settings.value("theme", "Light").toString();
     updateSidebarTheme(initialTheme);
@@ -76,14 +76,14 @@ void SettingsDialog::setupUI()
     mainLayout->setSpacing(6);
     mainLayout->setContentsMargins(9, 9, 9, 9);
 
-    connect(categoryList, SIGNAL(currentRowChanged(int)), this, SLOT(onCategoryChanged(int)));
-    connect(okButton, SIGNAL(clicked()), this, SLOT(onOkClicked()));
-    connect(cancelButton, SIGNAL(clicked()), this, SLOT(onCancelClicked()));
-    connect(applyButton, SIGNAL(clicked()), this, SLOT(onApplyClicked()));
-    connect(recordingBrowseButton, SIGNAL(clicked()), this, SLOT(onBrowseRecordingPath()));
-    connect(exportBrowseButton, SIGNAL(clicked()), this, SLOT(onBrowseExportPath()));
-    connect(themeComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(onThemeChanged(QString)));
-    connect(exportDataButton, SIGNAL(clicked()), this, SLOT(onExportDataClicked()));
+    connect(categoryList, &QListWidget::currentRowChanged, this, &SettingsDialog::onCategoryChanged);
+    connect(okButton, &QPushButton::clicked, this, &SettingsDialog::onOkClicked);
+    connect(cancelButton, &QPushButton::clicked, this, &SettingsDialog::onCancelClicked);
+    connect(applyButton, &QPushButton::clicked, this, &SettingsDialog::onApplyClicked);
+    connect(recordingBrowseButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseRecordingPath);
+    connect(exportBrowseButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseExportPath);
+    connect(themeComboBox, &QComboBox::currentTextChanged, this, &SettingsDialog::onThemeChanged);
+    connect(exportDataButton, &QPushButton::clicked, this, &SettingsDialog::onExportDataClicked);
 }
 
 void SettingsDialog::setupGeneralSettings()
@@ -146,7 +146,7 @@ void SettingsDialog::setupPathSettings()
     QVBoxLayout *dataCollectionLayout = new QVBoxLayout(dataCollectionGroup);
 
     enableDataCollectionCheckBox = new QCheckBox("Enable data collection", this);
-    enableDataCollectionCheckBox->setToolTip("When checked, game data will be collected through receive.py during recording");
+    enableDataCollectionCheckBox->setToolTip("When checked, game data will be collected through data_receiver.py during recording");
 
     dataCollectionLayout->addWidget(enableDataCollectionCheckBox);
 
@@ -169,10 +169,17 @@ void SettingsDialog::setupDbSettings()
     QGroupBox *dbGroup = new QGroupBox("PostgreSQL Database Credentials", this);
     QFormLayout *formLayout = new QFormLayout(dbGroup);
 
+    dbHostEdit = new QLineEdit(this);      // ← ADD THIS
+    dbPortEdit = new QLineEdit(this);     // ← ADD THIS
     dbUsernameEdit = new QLineEdit(this);
     dbPasswordEdit = new QLineEdit(this);
     dbPasswordEdit->setEchoMode(QLineEdit::Password);
 
+    dbHostEdit->setText("127.0.0.1");    // ← Default localhost
+    dbPortEdit->setText("5432");         // ← Default PostgreSQL port
+
+    formLayout->addRow("Host:", dbHostEdit);
+    formLayout->addRow("Port:", dbPortEdit);
     formLayout->addRow("Username:", dbUsernameEdit);
     formLayout->addRow("Password:", dbPasswordEdit);
 
@@ -199,8 +206,13 @@ void SettingsDialog::loadSettings()
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
     enableDataCollectionCheckBox->setChecked(enableDataCollection);
 
+    QString dbHost = settings.value("dbHost", "127.0.0.1").toString();
+    QString dbPort = settings.value("dbPort", "5432").toString();
     QString dbUsername = settings.value("dbUsername", "postgres").toString();
     QString dbPassword = settings.value("dbPassword", "a").toString();
+
+    dbHostEdit->setText(dbHost);
+    dbPortEdit->setText(dbPort);
     dbUsernameEdit->setText(dbUsername);
     dbPasswordEdit->setText(dbPassword);
 }
@@ -212,13 +224,15 @@ void SettingsDialog::saveSettings()
     settings.setValue("recordingPath", recordingPath);
     settings.setValue("exportPath", exportPath);
     settings.setValue("enableDataCollection", enableDataCollection);
+    settings.setValue("dbHost", dbHostEdit->text());
+    settings.setValue("dbPort", dbPortEdit->text());
     settings.setValue("dbUsername", dbUsernameEdit->text());
     settings.setValue("dbPassword", dbPasswordEdit->text());
 
     QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
     QJsonObject dbConfig;
-    dbConfig["host"] = "127.0.0.1";
-    dbConfig["port"] = "5432";
+    dbConfig["host"] = dbHostEdit->text();
+    dbConfig["port"] = dbPortEdit->text();
     dbConfig["database"] = "playerdata";
     dbConfig["user"] = dbUsernameEdit->text();
     dbConfig["password"] = dbPasswordEdit->text();
@@ -296,6 +310,8 @@ void SettingsDialog::applySettingsInternal()
     QString recordingPath = recordingPathEdit->text();
     QString exportPath = exportPathEdit->text();
     bool enableDataCollection = enableDataCollectionCheckBox->isChecked();
+    QString dbHost = dbHostEdit->text();
+    QString dbPort = dbPortEdit->text();
     QString dbUsername = dbUsernameEdit->text();
     QString dbPassword = dbPasswordEdit->text();
 
@@ -304,13 +320,15 @@ void SettingsDialog::applySettingsInternal()
     settings.setValue("recordingPath", recordingPath);
     settings.setValue("exportPath", exportPath);
     settings.setValue("enableDataCollection", enableDataCollection);
+    settings.setValue("dbHost", dbHost);
+    settings.setValue("dbPort", dbPort);
     settings.setValue("dbUsername", dbUsername);
     settings.setValue("dbPassword", dbPassword);
 
     QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
     QJsonObject dbConfig;
-    dbConfig["host"] = "127.0.0.1";
-    dbConfig["port"] = "5432";
+    dbConfig["host"] = dbHost;
+    dbConfig["port"] = dbPort;
     dbConfig["database"] = "playerdata";
     dbConfig["user"] = dbUsername;
     dbConfig["password"] = dbPassword;
@@ -355,8 +373,7 @@ void SettingsDialog::onBrowseExportPath()
 void SettingsDialog::onThemeChanged(const QString &theme)
 {
     currentTheme = theme;
-    // Optional: live preview
-    // updateSidebarTheme(theme);
+    updateSidebarTheme(theme);  // ← Add live preview
 }
 
 void SettingsDialog::onExportDataClicked()

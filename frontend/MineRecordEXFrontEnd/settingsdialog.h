@@ -85,6 +85,8 @@ private:
 
     // DB settings widgets
     QWidget *dbSettingsWidget;
+    QLineEdit *dbHostEdit;
+    QLineEdit *dbPortEdit;
     QLineEdit *dbUsernameEdit;
     QLineEdit *dbPasswordEdit;
 
