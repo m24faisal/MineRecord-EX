@@ -44,7 +44,7 @@ def export_player_data(player_name, export_path):
         return "Error: Could not connect to the database."
     raw_data = db.get_all_detailed_player_data(player_name)
     db.close()
-    if not raw_data:
+    if not raw_data or len(raw_data) == 0:  # Check for empty list
         return f"Info: No data found for player '{player_name}'."
     try:
         os.makedirs(export_path, exist_ok=True)

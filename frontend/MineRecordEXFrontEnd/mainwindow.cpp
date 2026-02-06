@@ -227,7 +227,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     // Check if any game is currently being recorded
     bool hasActiveRecording = false;
-    for (const QString& path : activeRecordingPaths) {
+    const QSet<QString>& recordingPaths = activeRecordingPaths; // ← Const reference to avoid detachment
+    for (const QString& path : recordingPaths) {
         if (programs.contains(path)) {
             hasActiveRecording = true;
             break;
@@ -239,7 +240,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
                                  "Active recordings detected. Stopping and saving...");
 
         // Stop all active recordings via Python backend
-        for (const QString& path : activeRecordingPaths) {
+        const QSet<QString>& recordingPaths2 = activeRecordingPaths; // ← Const reference to avoid detachment
+        for (const QString& path : recordingPaths2) {
             if (programs.contains(path)) {
                 ProgramInfo *program = programs[path];
                 QString result = stopPythonRecording(program->recordingId());

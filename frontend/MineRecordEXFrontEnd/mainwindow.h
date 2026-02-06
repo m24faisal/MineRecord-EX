@@ -102,7 +102,7 @@ private:
     QMap<QString, QProcess*> m_activeProcesses;
 
     // Track active recordings independently from game running state
-    QSet<QString> activeRecordingPaths;  // ← CRITICAL FIX
+    QSet<QString> activeRecordingPaths;
 };
 
 #endif // MAINWINDOW_H

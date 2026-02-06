@@ -22,70 +22,51 @@ class Database:
         try:
             self.conn = psycopg2.connect(dsn)
             print("[*] Database connection successful.")
-            return self.conn
+            return True
         except psycopg2.OperationalError as e:
             print(f"[!!!] Could not connect to database: {e}")
-            return None
+            self.conn = None
+            return False
 
     def setup_database_and_table(self):
-        """Creates the database and only the detailed player stats table if it doesn't exist."""
-        # First, connect to the default 'postgres' db to create the target database if needed
-        try:
-            conn_default = psycopg2.connect(
-                dbname="postgres",
-                user=DB_CONFIG['user'],
-                password=DB_CONFIG['password'],
-                host=DB_CONFIG['host'],
-                port=DB_CONFIG['port']
-            )
-            conn_default.autocommit = True
-            cursor = conn_default.cursor()
-            db_name = DB_CONFIG['database']
-            cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'")
-            if not cursor.fetchone():
-                cursor.execute(f"CREATE DATABASE {db_name}")
-                print(f"[*] Database '{db_name}' created.")
-            else:
-                print(f"[*] Database '{db_name}' already exists.")
-            cursor.close()
-            conn_default.close()
-        except psycopg2.Error as e:
-            print(f"[!!!] Could not check/create database: {e}")
-
-        # Now connect to the target database to create the detailed table only
-        conn = self.connect()
-        if not self.conn:
+        """Creates only the detailed player stats table if it doesn't exist."""
+        if not self.connect():
             print("[!!!] setup_database_and_table: Failed to connect to target database.")
             return
 
-        cursor = self.conn.cursor()
-        # --- ONLY create the detailed table ---
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS player_detailed_stats (
-                id SERIAL PRIMARY KEY,
-                player_name VARCHAR(255),
-                timestamp TIMESTAMP,
-                fps FLOAT,
-                plyrLocation VARCHAR(255),
-                plyrHealth FLOAT,
-                plyrInventory TEXT,
-                plyrArmor VARCHAR(255),
-                plyrOffhand VARCHAR(255),
-                plyrStatus TEXT,
-                plyrHunger FLOAT,
-                plyrSat FLOAT,
-                plyrView VARCHAR(255),
-                plyrFacing VARCHAR(255),
-                plyrSelectedSlot INTEGER,
-                plyrSelectedItem VARCHAR(255),
-                plyrRideState BOOLEAN,
-                plyrRideVehicle VARCHAR(255),
-                plyrMomentum FLOAT
-            );
-        """)
-        self.conn.commit()
-        print("[*] Table 'player_detailed_stats' is ready.")
-        cursor.close()
+        try:
+            conn = self.conn
+            assert conn is not None
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS player_detailed_stats (
+                    id SERIAL PRIMARY KEY,
+                    player_name VARCHAR(255),
+                    timestamp TIMESTAMP,
+                    fps FLOAT,
+                    plyrLocation VARCHAR(255),
+                    plyrHealth FLOAT,
+                    plyrInventory TEXT,
+                    plyrArmor VARCHAR(255),
+                    plyrOffhand VARCHAR(255),
+                    plyrStatus TEXT,
+                    plyrHunger FLOAT,
+                    plyrSat FLOAT,
+                    plyrView VARCHAR(255),
+                    plyrFacing VARCHAR(255),
+                    plyrSelectedSlot INTEGER,
+                    plyrSelectedItem VARCHAR(255),
+                    plyrRideState BOOLEAN,
+                    plyrRideVehicle VARCHAR(255),
+                    plyrMomentum FLOAT
+                );
+            """)
+            conn.commit()
+            print("[*] Table 'player_detailed_stats' is ready.")
+        except psycopg2.Error as e:
+            print(f"[DB ERROR] Could not create table: {e}")
+        finally:
+            pass  # Caller manages connection lifecycle
 
     def insert_detailed_data(self, player_name, data_dict):
         """Inserts a full data point into the player_detailed_stats table."""
@@ -93,7 +74,9 @@ class Database:
             print("[!!!] insert_detailed_data: No valid database connection. Cannot insert data.")
             return
         try:
-            cursor = self.conn.cursor()
+            conn = self.conn
+            assert conn is not None
+            cursor = conn.cursor()
             insert_query = """
                 INSERT INTO player_detailed_stats (
                     player_name, timestamp, fps, plyrLocation, plyrHealth, plyrInventory,
@@ -124,7 +107,7 @@ class Database:
                 data_dict.get("plyrMomentum")
             )
             cursor.execute(insert_query, values)
-            self.conn.commit()
+            conn.commit()
         except psycopg2.Error as e:
             print(f"[DB ERROR] Could not write data to player_detailed_stats: {e}")
         finally:
@@ -137,7 +120,9 @@ class Database:
             print("[!!!] get_all_detailed_player_data: No valid database connection. Cannot fetch data.")
             return None
         try:
-            cursor = self.conn.cursor()
+            conn = self.conn
+            assert conn is not None
+            cursor = conn.cursor()
             query = """
                 SELECT player_name, timestamp, fps, plyrLocation, plyrHealth, plyrInventory,
                        plyrArmor, plyrOffhand, plyrStatus, plyrHunger, plyrSat, plyrView,
@@ -162,7 +147,8 @@ class Database:
         """Closes the database connection."""
         if self.conn is not None:
             print("[*] Closing database connection.")
-            if self.conn.closed == 0:
+            if hasattr(self.conn, 'closed') and self.conn.closed == 0:
                 self.conn.close()
             else:
                 print("[*] Connection was already closed.")
+            self.conn = None
