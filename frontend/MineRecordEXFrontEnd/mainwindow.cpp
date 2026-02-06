@@ -164,7 +164,9 @@ MainWindow::MainWindow(QWidget *parent) :
     executableTable->setSelectionMode(QAbstractItemView::SingleSelection);
     executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    executableTable->installEventFilter(this);
+
+    // CRITICAL FIX: Install event filter on QApplication, not table
+    qApp->installEventFilter(this);
 
     // Load program data
     loadProgramData();
@@ -184,7 +186,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // Connect cleanup before quit
     connect(qApp, &QApplication::aboutToQuit, this, &MainWindow::cleanupBeforeQuit);
 }
-
 MainWindow::~MainWindow()
 {
     // Cleanup is handled by cleanupBeforeQuit()
@@ -608,48 +609,43 @@ void MainWindow::changeEvent(QEvent *event)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
-    if (obj == executableTable && event->type() == QEvent::FocusIn) {
-        // Track current selection when table gains focus
-        QList<QTableWidgetSelectionRange> selection = executableTable->selectedRanges();
-        if (!selection.isEmpty()) {
-            int row = selection.first().topRow();
-            if (row >= 0 && row < executableTable->rowCount()) {
-                QTableWidgetItem *item = executableTable->item(row, 0);
-                if (item) {
-                    m_lastSelectedExecutablePath = item->data(Qt::UserRole).toString();
-                }
-            }
-        }
-    }
-
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         QPoint globalPos = mouseEvent->globalPosition().toPoint();
         QWidget *clickedWidget = qApp->widgetAt(globalPos);
 
-        // Check if click is on menu bar or menu items
-        bool clickedOnMenu = false;
-        QWidget *walker = clickedWidget;
-        while (walker) {
-            if (qobject_cast<QMenuBar*>(walker)) {
-                clickedOnMenu = true;
-                break;
+        // Only process deselection if we have a valid executable table
+        if (executableTable) {
+            // Check if click is on the table or its headers
+            bool clickedOnTable = false;
+            QWidget *walker = clickedWidget;
+            while (walker) {
+                if (walker == executableTable ||
+                    walker == executableTable->horizontalHeader() ||
+                    walker == executableTable->verticalHeader()) {
+                    clickedOnTable = true;
+                    break;
+                }
+                walker = walker->parentWidget();
             }
-            if (QMenu *menu = qobject_cast<QMenu*>(walker)) {
-                clickedOnMenu = true;
-                break;
+
+            // Check if click is on menu or menubar
+            bool clickedOnMenu = false;
+            walker = clickedWidget;
+            while (walker) {
+                if (qobject_cast<QMenuBar*>(walker) || qobject_cast<QMenu*>(walker)) {
+                    clickedOnMenu = true;
+                    break;
+                }
+                walker = walker->parentWidget();
             }
-            walker = walker->parentWidget();
-        }
 
-        if (executableTable && clickedWidget != executableTable &&
-            clickedWidget != executableTable->horizontalHeader() &&
-            clickedWidget != executableTable->verticalHeader() &&
-            !clickedOnMenu) {
-
-            executableTable->clearSelection();
-            executableTable->setCurrentCell(-1, -1);
-            m_lastSelectedExecutablePath.clear(); // Clear when clicking elsewhere
+            // Deselect only if click is NOT on table/headers AND NOT on menu/menubar
+            if (!clickedOnTable && !clickedOnMenu) {
+                executableTable->clearSelection();
+                executableTable->setCurrentCell(-1, -1);
+                m_lastSelectedExecutablePath.clear();
+            }
         }
     }
     return QMainWindow::eventFilter(obj, event);
