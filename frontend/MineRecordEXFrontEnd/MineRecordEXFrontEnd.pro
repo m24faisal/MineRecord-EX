@@ -9,7 +9,6 @@ SOURCES += \
     mainwindow.cpp \
     programinfo.cpp \
     processdetector.cpp \
-    python_interpreter.cpp \
     pythonbackendwrapper.cpp \
     settingsdialog.cpp
 
