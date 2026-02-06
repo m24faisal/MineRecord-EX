@@ -24,6 +24,8 @@
 #include <QUuid>
 #include <QScopedValueRollback>
 #include <windows.h>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
