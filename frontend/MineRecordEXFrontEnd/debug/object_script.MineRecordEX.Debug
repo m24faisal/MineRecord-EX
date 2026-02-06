@@ -3,7 +3,6 @@ debug/main.o
 debug/mainwindow.o
 debug/programinfo.o
 debug/processdetector.o
-debug/python_interpreter.o
 debug/pythonbackendwrapper.o
 debug/settingsdialog.o
 debug/qrc_resources.o
