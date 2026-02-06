@@ -35,7 +35,6 @@ private slots:
     void onApplyClicked();
     void onBrowseRecordingPath();
     void onBrowseExportPath();
-    void onThemeChanged(const QString &theme);
     void updateSidebarTheme(const QString &theme);
     void onExportDataClicked();
 

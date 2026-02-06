@@ -367,28 +367,22 @@ void MainWindow::startRecording()
         return;
     }
 
+    // CRITICAL: Set activeRecordingId for stop functionality
     activeRecordingId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     QSettings settings("Stat Tracker", "MineRecordEX");
     QString recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
     QDir().mkpath(recordingPath);
 
-    QString recordingDir = recordingPath + "/" + activeRecordingId;
-    if (!QDir().mkpath(recordingDir)) {
-        QMessageBox::critical(this, "Error", "Failed to create recording directory.");
-        activeRecordingId.clear();
-        return;
-    }
-
     // Update ProgramInfo BEFORE starting process
     QString path = nameItem->data(Qt::UserRole).toString();
     if (programs.contains(path)) {
         programs[path]->setRecording(true);
     }
-    activeRecordingPaths.insert(path);  // ← CRITICAL: Track recording independently
+    activeRecordingPaths.insert(path);
     saveProgramData();
 
-    bool success = startRecordingProcess(executablePath, recordingDir, gameName);
+    bool success = startRecordingProcess(executablePath, recordingPath, gameName);
 
     if (success) {
         // Update only the specific row
@@ -401,8 +395,8 @@ void MainWindow::startRecording()
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
     } else {
-        activeRecordingPaths.remove(path);  // ← CRITICAL: Clean up on failure
-        activeRecordingId.clear();
+        activeRecordingPaths.remove(path);
+        activeRecordingId.clear(); // Clear on failure
         // Revert ProgramInfo state
         if (programs.contains(path)) {
             programs[path]->setRecording(false);
@@ -452,7 +446,7 @@ void MainWindow::stopRecording()
     if (programs.contains(path)) {
         programs[path]->setRecording(false);
     }
-    activeRecordingPaths.remove(path);  // ← CRITICAL: Remove from active recordings
+    activeRecordingPaths.remove(path);
     saveProgramData();
 
     bool success = stopRecordingProcess(gameName);
@@ -465,7 +459,7 @@ void MainWindow::stopRecording()
             recordingItem->setBackground(Qt::NoBrush);
         }
 
-        activeRecordingId.clear();
+        activeRecordingId.clear(); // CRITICAL: Clear the recording ID
         QMessageBox::information(this, "Recording Stopped",
                                  QString("Recording stopped for %1").arg(gameName));
     } else {

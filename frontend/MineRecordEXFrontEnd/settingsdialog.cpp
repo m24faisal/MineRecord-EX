@@ -82,7 +82,7 @@ void SettingsDialog::setupUI()
     connect(applyButton, &QPushButton::clicked, this, &SettingsDialog::onApplyClicked);
     connect(recordingBrowseButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseRecordingPath);
     connect(exportBrowseButton, &QPushButton::clicked, this, &SettingsDialog::onBrowseExportPath);
-    connect(themeComboBox, &QComboBox::currentTextChanged, this, &SettingsDialog::onThemeChanged);
+    // REMOVED: connect(themeComboBox, &QComboBox::currentTextChanged, this, &SettingsDialog::onThemeChanged);
     connect(exportDataButton, &QPushButton::clicked, this, &SettingsDialog::onExportDataClicked);
 }
 
@@ -193,7 +193,8 @@ void SettingsDialog::loadSettings()
 {
     QSettings settings("Stat Tracker", "MineRecordEX");
 
-    currentTheme = settings.value("theme", "Light").toString();
+    // REMOVED: currentTheme = settings.value("theme", "Light").toString();
+    QString currentTheme = settings.value("theme", "Light").toString(); // Local variable only
     int themeIndex = themeComboBox->findText(currentTheme);
     if (themeIndex >= 0) {
         themeComboBox->setCurrentIndex(themeIndex);
@@ -222,7 +223,8 @@ void SettingsDialog::loadSettings()
 void SettingsDialog::saveSettings()
 {
     QSettings settings("Stat Tracker", "MineRecordEX");
-    settings.setValue("theme", currentTheme);
+    // REMOVED: settings.setValue("theme", currentTheme);
+    settings.setValue("theme", themeComboBox->currentText()); // Get current selection directly
     settings.setValue("recordingPath", recordingPath);
     settings.setValue("exportPath", exportPath);
     settings.setValue("enableDataCollection", enableDataCollection);
@@ -378,11 +380,7 @@ void SettingsDialog::onBrowseExportPath()
     }
 }
 
-void SettingsDialog::onThemeChanged(const QString &theme)
-{
-    currentTheme = theme;
-    updateSidebarTheme(theme);
-}
+// REMOVED: onThemeChanged() method entirely
 
 void SettingsDialog::onExportDataClicked()
 {
