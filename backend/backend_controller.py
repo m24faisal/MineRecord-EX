@@ -9,8 +9,14 @@ from database import Database
 # ONLY handle data collection - NO SCREEN RECORDING
 active_recordings = {}
 
+def _is_shutting_down():
+    """Check if Python is in shutdown state"""
+    return getattr(sys, '_shutting_down', False)
+
 def start_recording(game_name, game_path, recording_path, enable_data_collection=False):
     """Start data collection only (screen recording handled by C++)."""
+    if _is_shutting_down():
+        return "Error: Python is shutting down"
     recording_id = "data_" + datetime.now().strftime("%Y%m%d_%H%M%S")
     active_recordings[recording_id] = {
         "game_name": game_name,
@@ -22,12 +28,16 @@ def start_recording(game_name, game_path, recording_path, enable_data_collection
 
 def stop_recording(recording_id):
     """Stop data collection only."""
+    if _is_shutting_down():
+        return "Error: Python is shutting down"
     if recording_id in active_recordings:
         del active_recordings[recording_id]
     return "Data collection stopped"
 
 def export_player_data(player_name, export_path):
     """Export player data to CSV."""
+    if _is_shutting_down():
+        return "Error: Python is shutting down"
     print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
     db = Database()
     if not db.connect():
@@ -58,5 +68,5 @@ def export_player_data(player_name, export_path):
 def shutdown_all():
     """Safely clear recordings during shutdown"""
     global active_recordings
-    if not getattr(sys, '_shutting_down', False):
+    if not _is_shutting_down():
         active_recordings.clear()

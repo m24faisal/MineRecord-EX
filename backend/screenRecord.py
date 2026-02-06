@@ -7,11 +7,14 @@ def start_ffmpeg_process(output_file, fps=30):
     Starts an FFmpeg process for screen recording.
     The process must be controlled externally by sending 'q' to stdin.
     """
-    # Look for ffmpeg.exe in the same folder as the running script's parent (i.e., next to GameManager.exe)
-    ffmpeg_exe = os.path.join(os.path.dirname(__file__), "..", "ffmpeg.exe")
+    # Look for ffmpeg.exe in the same folder as the main application executable
+    app_dir = os.path.dirname(os.path.abspath(sys.executable))
+    ffmpeg_exe = os.path.join(app_dir, "ffmpeg.exe")
+    
     if not os.path.exists(ffmpeg_exe):
-        # Fallback: assume it's in PATH (for dev)
+        # Fallback: assume it's in PATH (for development)
         ffmpeg_exe = "ffmpeg"
+    
     # A robust FFmpeg command for gdigrab
     ffmpeg_cmd = [
         ffmpeg_exe,
@@ -44,25 +47,3 @@ def start_ffmpeg_process(output_file, fps=30):
     except Exception as e:
         print(f"\n!!! CRITICAL ERROR: Failed to launch FFmpeg: {e} !!!")
         return None
-
-if __name__ == "__main__":
-    # This block allows the script to be run standalone for easy testing.
-    if len(sys.argv) < 2:
-        print("Usage: python screenRecord.py <output_file.mp4>")
-        sys.exit(1)
-    output_file = sys.argv[1]
-    process = start_ffmpeg_process(output_file)
-    if process:
-        print("Recording started. Press Ctrl+C to stop.")
-        try:
-            process.wait() # Wait for the process to be interrupted
-        except KeyboardInterrupt:
-            print("\nCtrl+C detected. Terminating FFmpeg process...")
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-                print("FFmpeg terminated gracefully.")
-            except subprocess.TimeoutExpired:
-                print("FFmpeg did not terminate, killing it forcefully.")
-                process.kill()
-                print("FFmpeg killed.")
