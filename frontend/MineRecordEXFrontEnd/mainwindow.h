@@ -41,7 +41,6 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void changeEvent(QEvent *event) override;
 
-
 public slots:
     void on_actionAdd_Game_triggered();
     void on_actionExit_Application_triggered();
@@ -55,6 +54,7 @@ public slots:
     void stopRecording();
 
 private slots:
+    void cleanupBeforeQuit();  // ← CRITICAL: Handles proper shutdown
     void handleDataCollectionError(QProcess::ProcessError error);
     void onAppFocusChanged(QWidget *old, QWidget *now);
 
