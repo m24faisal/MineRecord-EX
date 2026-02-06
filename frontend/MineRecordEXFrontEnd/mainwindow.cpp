@@ -164,8 +164,11 @@ MainWindow::MainWindow(QWidget *parent) :
     executableTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     executableTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    // CRITICAL: Install event filter on QApplication only (NOT on table)
-    qApp->installEventFilter(this);
+    // CRITICAL FIX: Install event filter ONLY on central widget (NOT on qApp or table)
+    // Install event filter on the main window itself
+    // Replace: centralWidget->installEventFilter(this);
+    // With this:
+    executableTable->viewport()->installEventFilter(this);
 
     // Load program data
     loadProgramData();
@@ -607,54 +610,23 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        QPoint globalPos = mouseEvent->globalPosition().toPoint();
-        QWidget *clickedWidget = QApplication::widgetAt(globalPos);
 
-        if (executableTable) {
-            // Check if click is on table or its components
-            bool isPartOfTable = false;
-            QWidget *checkWidget = clickedWidget;
-            while (checkWidget != nullptr) {
-                if (checkWidget == executableTable ||
-                    checkWidget == executableTable->viewport() ||
-                    checkWidget == executableTable->horizontalHeader() ||
-                    checkWidget == executableTable->verticalHeader()) {
-                    isPartOfTable = true;
-                    break;
-                }
-                checkWidget = checkWidget->parentWidget();
-            }
+        // If we have a table and it has a selection
+        if (executableTable && executableTable->selectedItems().size() > 0) {
+            // Get the item at the clicked position
+            QPoint pos = mouseEvent->pos();
+            QTableWidgetItem *item = executableTable->itemAt(pos);
 
-            // Check if click is on context menu
-            bool isContextMenu = false;
-            checkWidget = clickedWidget;
-            while (checkWidget != nullptr) {
-                if (checkWidget->inherits("QMenu")) {
-                    isContextMenu = true;
-                    break;
-                }
-                checkWidget = checkWidget->parentWidget();
-            }
-
-            // Check if click is on menubar
-            bool isMenuBar = false;
-            checkWidget = clickedWidget;
-            while (checkWidget != nullptr) {
-                if (qobject_cast<QMenuBar*>(checkWidget)) {
-                    isMenuBar = true;
-                    break;
-                }
-                checkWidget = checkWidget->parentWidget();
-            }
-
-            // Only deselect if clicking outside table, context menu, and menubar
-            if (!isPartOfTable && !isContextMenu && !isMenuBar) {
+            // If no item was clicked (empty space in table), deselect
+            if (!item) {
                 executableTable->clearSelection();
                 executableTable->setCurrentCell(-1, -1);
                 m_lastSelectedExecutablePath.clear();
+                return true;
             }
         }
     }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
