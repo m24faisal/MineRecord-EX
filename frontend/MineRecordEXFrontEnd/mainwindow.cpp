@@ -23,6 +23,8 @@
 #include <QScrollBar>
 #include <QUuid>
 #include <QScopedValueRollback>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -45,6 +47,27 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     setupUI();
+
+    // Ensure backend directory and default db_config.json exist
+    QString backendDir = QCoreApplication::applicationDirPath() + "/backend";
+    QDir().mkpath(backendDir);
+    QString configPath = backendDir + "/db_config.json";
+    if (!QFile::exists(configPath)) {
+        QJsonObject dbConfig;
+        dbConfig["host"] = "127.0.0.1";
+        dbConfig["port"] = "5432";
+        dbConfig["database"] = "playerdata";
+        dbConfig["user"] = "postgres";
+        dbConfig["password"] = "postgres";
+
+        QJsonDocument doc(dbConfig);
+        QFile configFile(configPath);
+        if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            configFile.write(doc.toJson());
+            configFile.close();
+            qDebug() << "Created default db_config.json at:" << configPath;
+        }
+    }
 
     loadSettings();
     applySettings();
@@ -367,6 +390,7 @@ void MainWindow::startRecording()
         }
         saveProgramData();
 
+
         QMessageBox::information(this, "Recording Started",
                                  QString("Recording started for %1").arg(gameName));
     } else {
@@ -375,6 +399,7 @@ void MainWindow::startRecording()
                               "Failed to start recording process.");
     }
 }
+
 
 void MainWindow::stopRecording()
 {
@@ -425,6 +450,7 @@ void MainWindow::stopRecording()
             programs[path]->setRecording(false);
         }
         saveProgramData();
+
 
         activeRecordingId.clear();
         QMessageBox::information(this, "Recording Stopped",
@@ -615,6 +641,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     return QMainWindow::eventFilter(obj, event);
 }
 
+
 void MainWindow::on_actionAdd_Game_triggered()
 {
     QString filePath = QFileDialog::getOpenFileName(this, "Select Executable",
@@ -772,6 +799,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
     contextMenu->popup(executableTable->viewport()->mapToGlobal(pos));
 }
+
 
 void MainWindow::removeGame()
 {

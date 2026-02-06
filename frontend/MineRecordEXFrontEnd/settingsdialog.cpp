@@ -122,6 +122,7 @@ void SettingsDialog::setupPathSettings()
     recordingPathEdit = new QLineEdit(this);
     recordingBrowseButton = new QPushButton("Browse...", this);
 
+    recordingPathLayout->addWidget(recordingLabel);
     recordingPathLayout->addWidget(recordingPathEdit);
     recordingPathLayout->addWidget(recordingBrowseButton);
 
@@ -136,6 +137,7 @@ void SettingsDialog::setupPathSettings()
     exportPathEdit = new QLineEdit(this);
     exportBrowseButton = new QPushButton("Browse...", this);
 
+    exportPathLayout->addWidget(exportLabel);
     exportPathLayout->addWidget(exportPathEdit);
     exportPathLayout->addWidget(exportBrowseButton);
 
@@ -169,14 +171,14 @@ void SettingsDialog::setupDbSettings()
     QGroupBox *dbGroup = new QGroupBox("PostgreSQL Database Credentials", this);
     QFormLayout *formLayout = new QFormLayout(dbGroup);
 
-    dbHostEdit = new QLineEdit(this);      // ← ADD THIS
-    dbPortEdit = new QLineEdit(this);     // ← ADD THIS
+    dbHostEdit = new QLineEdit(this);
+    dbPortEdit = new QLineEdit(this);
     dbUsernameEdit = new QLineEdit(this);
     dbPasswordEdit = new QLineEdit(this);
     dbPasswordEdit->setEchoMode(QLineEdit::Password);
 
-    dbHostEdit->setText("127.0.0.1");    // ← Default localhost
-    dbPortEdit->setText("5432");         // ← Default PostgreSQL port
+    dbHostEdit->setText("127.0.0.1");
+    dbPortEdit->setText("5432");
 
     formLayout->addRow("Host:", dbHostEdit);
     formLayout->addRow("Port:", dbPortEdit);
@@ -229,7 +231,10 @@ void SettingsDialog::saveSettings()
     settings.setValue("dbUsername", dbUsernameEdit->text());
     settings.setValue("dbPassword", dbPasswordEdit->text());
 
-    QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
+    // Ensure backend directory exists and save config there
+    QString backendDir = QCoreApplication::applicationDirPath() + "/backend";
+    QDir().mkpath(backendDir);
+
     QJsonObject dbConfig;
     dbConfig["host"] = dbHostEdit->text();
     dbConfig["port"] = dbPortEdit->text();
@@ -238,7 +243,7 @@ void SettingsDialog::saveSettings()
     dbConfig["password"] = dbPasswordEdit->text();
 
     QJsonDocument doc(dbConfig);
-    QString configPath = QCoreApplication::applicationDirPath() + "/backend/db_config.json";
+    QString configPath = backendDir + "/db_config.json";
     QFile configFile(configPath);
     if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         configFile.write(doc.toJson());
@@ -325,7 +330,10 @@ void SettingsDialog::applySettingsInternal()
     settings.setValue("dbUsername", dbUsername);
     settings.setValue("dbPassword", dbPassword);
 
-    QDir().mkpath(QCoreApplication::applicationDirPath() + "/backend");
+    // Save db_config.json to backend directory
+    QString backendDir = QCoreApplication::applicationDirPath() + "/backend";
+    QDir().mkpath(backendDir);
+
     QJsonObject dbConfig;
     dbConfig["host"] = dbHost;
     dbConfig["port"] = dbPort;
@@ -334,7 +342,7 @@ void SettingsDialog::applySettingsInternal()
     dbConfig["password"] = dbPassword;
 
     QJsonDocument doc(dbConfig);
-    QString configPath = QCoreApplication::applicationDirPath() + "/backend/db_config.json";
+    QString configPath = backendDir + "/db_config.json";
     QFile configFile(configPath);
     if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         configFile.write(doc.toJson());
@@ -373,7 +381,7 @@ void SettingsDialog::onBrowseExportPath()
 void SettingsDialog::onThemeChanged(const QString &theme)
 {
     currentTheme = theme;
-    updateSidebarTheme(theme);  // ← Add live preview
+    updateSidebarTheme(theme);
 }
 
 void SettingsDialog::onExportDataClicked()
