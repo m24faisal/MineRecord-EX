@@ -604,13 +604,6 @@ debug/moc_mainwindow.cpp: mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
 		ui_mainwindow.h \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/QVariant \
-		C:/Qt/6.9.0/mingw_64/include/QtGui/QAction \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QMenuBar \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qmenubar.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QWidget \
 		debug/moc_predefs.h \
 		C:/Qt/6.9.0/mingw_64/bin/moc.exe
 	C:\Qt\6.9.0\mingw_64\bin\moc.exe $(DEFINES) --include C:/Users/Mahir/Documents/MineRecordEX/frontend/MineRecordEXFrontEnd/debug/moc_predefs.h -IC:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ -IC:/Users/Mahir/Documents/MineRecordEX/frontend/MineRecordEXFrontEnd -IC:/Users/Mahir/AppData/Local/Programs/Python/Python313/include -IC:/Users/Mahir/AppData/Local/Programs/Python/Python313/Lib/site-packages/pybind11/include -IC:/Qt/6.9.0/mingw_64/include -IC:/Qt/6.9.0/mingw_64/include/QtWidgets -IC:/Qt/6.9.0/mingw_64/include/QtGui -IC:/Qt/6.9.0/mingw_64/include/QtCore -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++ -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32 -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include -IC:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include-fixed -IC:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include mainwindow.h -o debug\moc_mainwindow.cpp
@@ -1498,13 +1491,8 @@ debug/main.o: main.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
 		ui_mainwindow.h \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/QVariant \
-		C:/Qt/6.9.0/mingw_64/include/QtGui/QAction \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QMenuBar \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qmenubar.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QWidget
+		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\main.o main.cpp
 
 debug/mainwindow.o: mainwindow.cpp mainwindow.h \
@@ -1746,13 +1734,6 @@ debug/mainwindow.o: mainwindow.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
 		ui_mainwindow.h \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/QVariant \
-		C:/Qt/6.9.0/mingw_64/include/QtGui/QAction \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QMenuBar \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qmenubar.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QWidget \
 		programinfo.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QString \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QDateTime \
@@ -1803,6 +1784,8 @@ debug/mainwindow.o: mainwindow.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QHeaderView \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qheaderview.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QDir \
+		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
+		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QDesktopServices \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/qdesktopservices.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QUrl \
@@ -2709,12 +2692,7 @@ debug/settingsdialog.o: settingsdialog.cpp settingsdialog.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
-		ui_mainwindow.h \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/QVariant \
-		C:/Qt/6.9.0/mingw_64/include/QtGui/QAction \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QMenuBar \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qmenubar.h \
-		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QWidget
+		ui_mainwindow.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\settingsdialog.o settingsdialog.cpp
 
 debug/qrc_resources.o: debug/qrc_resources.cpp 
