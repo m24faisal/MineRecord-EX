@@ -1,4 +1,4 @@
-QT       += core gui widgets
+QT += core gui widgets
 
 TARGET = MineRecordEX
 TEMPLATE = app
@@ -27,9 +27,22 @@ FORMS += \
 RESOURCES += \
     resources.qrc
 
-PYBIND11_PATH = C:/Users/Mahir/AppData/Local/Programs/Python/Python313/Lib/site-packages/pybind11/include
-PYTHON_PATH = C:/Users\Mahir/AppData/Local/Programs/Python/Python313
+# Auto-detect Python installation (privacy-safe)
 PYTHON_VERSION = 313
+
+# Try common Python installation locations
+exists(C:/Python$$PYTHON_VERSION) {
+    PYTHON_PATH = C:/Python$$PYTHON_VERSION
+} else {
+    exists($$quote($$system(echo %LOCALAPPDATA%))/Programs/Python/Python$$PYTHON_VERSION) {
+        PYTHON_PATH = $$quote($$system(echo %LOCALAPPDATA%))/Programs/Python/Python$$PYTHON_VERSION
+    } else {
+        error("Python $$PYTHON_VERSION not found. Please install Python $$PYTHON_VERSION.")
+    }
+}
+
+PYBIND11_PATH = $$PYTHON_PATH/Lib/site-packages/pybind11/include
+
 INCLUDEPATH += $$PYTHON_PATH/include $$PYBIND11_PATH
 LIBS += -L$$PYTHON_PATH/libs -lpython$$PYTHON_VERSION
 
