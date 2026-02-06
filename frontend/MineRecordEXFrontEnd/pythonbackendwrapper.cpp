@@ -1,47 +1,65 @@
 // pythonbackendwrapper.cpp
 #include "pythonbackendwrapper.h"
+
+// --- INCLUDES IN THE CORRECT ORDER ---
+// 1. Include pybind11 headers first.
 #include <pybind11/embed.h>
 namespace py = pybind11;
+
+// 2. THEN include Qt headers.
 #include <QDebug>
 #include <QProcess>
 #include <QDir>
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QApplication>
+#include <QThread>
+
 // --- The private implementation struct holds ALL members, both pybind11 and Qt ---
 struct PythonBackendWrapperPrivate {
     py::module backend_module;
     bool isInitialized = false;
-    QProcess* serverProcess;
+    QProcess* serverProcess = nullptr;
+    std::unique_ptr<py::scoped_interpreter> interpreter; // Manages Python interpreter lifecycle
 };
+
+// Helper function to cast d_ptr
+PythonBackendWrapperPrivate* PythonBackendWrapper::d_ptr_cast() {
+    return d_ptr;
+}
+
 PythonBackendWrapper::PythonBackendWrapper()
     : d_ptr(new PythonBackendWrapperPrivate())
 {
+    // Initialize Python interpreter in constructor (after Qt is ready)
+    d_ptr->interpreter = std::make_unique<py::scoped_interpreter>();
 }
+
 PythonBackendWrapper::~PythonBackendWrapper()
 {
-    shutdown();
+    // Don't call shutdown here - handled by MainWindow::cleanupBeforeQuit()
     delete d_ptr;
 }
+
 void PythonBackendWrapper::initialize()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     try {
-        // Get the path of the current executable
-        QFileInfo exeInfo(QCoreApplication::applicationFilePath());
-        QString exePath = exeInfo.absolutePath();
-        // Go up one directory to the project root
-        QDir projectRoot = exeInfo.absoluteDir();
-        projectRoot.cdUp();
-        // Construct an absolute path to the backend directory
-        QString backendPath = QApplication::applicationDirPath() + "/backend";
-        QString pythonPath = QApplication::applicationDirPath() + "/python";
-        // --- DEBUGGING: PRINT THE PATHS TO VERIFY ---
-        qDebug() << "Project Root:" << projectRoot.absolutePath();
+        // Use application directory (where .exe actually runs)
+        QString appDir = QApplication::applicationDirPath();
+        QString backendPath = appDir + "/backend";
+        QString pythonPath = appDir + "/python";
+
         qDebug() << "Backend Path:" << backendPath;
-        // Add the absolute backend path to Python's sys.path
-        py::exec("import sys; sys.path.insert(0, '" + backendPath.toStdString() + "')");
+        qDebug() << "Python Path:" << pythonPath;
+
+        // Configure Python to use bundled installation
+        py::exec("import sys");
+        py::exec("sys.executable = '" + pythonPath.toStdString() + "/python.exe'");
         py::exec("sys.prefix = sys.exec_prefix = '" + pythonPath.toStdString() + "'");
+        py::exec("sys.path.insert(0, '" + backendPath.toStdString() + "')");
+        py::exec("sys.path.insert(0, '" + pythonPath.toStdString() + "/Lib/site-packages')");
+
         // Import the main controller module
         d->backend_module = py::module::import("backend_controller");
         d->isInitialized = true;
@@ -51,21 +69,33 @@ void PythonBackendWrapper::initialize()
         d->isInitialized = false;
     }
 }
+
 void PythonBackendWrapper::shutdown()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
-    if (!d->isInitialized || !d->backend_module) {
+    if (!d->isInitialized) {
         return;
     }
-    try {
-        // Call the shutdown_all function in the backend controller
-        d->backend_module.attr("shutdown_all")();
-        qDebug() << "SUCCESS: Python backend shutdown via wrapper.";
-    } catch (const py::error_already_set &e) {
-        qWarning() << "Error during Python shutdown:" << e.what();
+
+    // Call Python shutdown function if module exists
+    if (d->backend_module) {
+        try {
+            d->backend_module.attr("shutdown_all")();
+            qDebug() << "SUCCESS: Python backend shutdown via wrapper.";
+        } catch (...) {
+            // Silently ignore errors during shutdown
+        }
     }
+
+    // Reset the module to release Python references
+    d->backend_module = py::module();
+
+    // Reset the interpreter AFTER all Python objects are destroyed
+    d->interpreter.reset();
+
     d->isInitialized = false;
 }
+
 void PythonBackendWrapper::startDataService()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -78,25 +108,17 @@ void PythonBackendWrapper::startDataService()
         qDebug() << "Data collection server is already running.";
         return;
     }
-    // --- START THE STANDALONE DATA RECEIVER SERVER ---
-    // This process will run the data_receiver.py script
-    d->serverProcess = new QProcess();
-    QString backendPath;
-    {
-        // Get the path of the current executable
-        QFileInfo exeInfo(QCoreApplication::applicationFilePath());
-        QString exePath = exeInfo.absolutePath();
-        // Go up one directory to the project root
-        QDir projectRoot = exeInfo.absoluteDir();
-        projectRoot.cdUp();
-        // Construct an absolute path to the backend directory
-        backendPath = projectRoot.absoluteFilePath("debug/backend");
-        qDebug() << "Project Root:" << projectRoot.absolutePath();
-        qDebug() << "Backend Path:" << backendPath;
-    }
-    QString serverScript = backendPath + "/data_receiver.py"; // Use the local backendPath
+    // START THE STANDALONE DATA RECEIVER SERVER
+    QString appDir = QApplication::applicationDirPath();
+    QString backendPath = appDir + "/backend";
+    QString serverScript = backendPath + "/data_receiver.py";
+    QString pythonExe = appDir + "/python/python.exe"; // Use bundled Python
+
     qDebug() << "Starting server process with script:" << serverScript;
-    d->serverProcess->start("python", QStringList() << serverScript);
+    qDebug() << "Using Python executable:" << pythonExe;
+
+    d->serverProcess = new QProcess();
+    d->serverProcess->start(pythonExe, QStringList() << serverScript);
     if (!d->serverProcess->waitForStarted()) {
         qCritical() << "Failed to start server process:" << d->serverProcess->errorString();
         delete d->serverProcess;
@@ -105,23 +127,43 @@ void PythonBackendWrapper::startDataService()
     }
     qDebug() << "Data Receiver Server process started with PID:" << d->serverProcess->processId();
 }
+
 void PythonBackendWrapper::stopDataService()
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
     if (d->serverProcess) {
         qDebug() << "Stopping data receiver server process...";
-        d->serverProcess->terminate();
-        // Give it some time to close gracefully
-        if (!d->serverProcess->waitForFinished(5000)) {
-            qDebug() << "Server did not terminate, killing it.";
-            d->serverProcess->kill();
-            d->serverProcess->waitForFinished();
+
+        // CREATE SHUTDOWN SIGNAL FILE
+        QString shutdownFile = QApplication::applicationDirPath() + "/data_receiver.shutdown";
+        QFile file(shutdownFile);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write("shutdown");
+            file.close();
+            qDebug() << "Shutdown signal file created:" << shutdownFile;
         }
+
+        // Wait for graceful shutdown (up to 5 seconds)
+        if (!d->serverProcess->waitForFinished(5000)) {
+            qDebug() << "Server did not terminate gracefully, killing it.";
+            d->serverProcess->kill();
+            d->serverProcess->waitForFinished(2000);
+        }
+
+        // Clean up shutdown file if it still exists
+        if (QFile::exists(shutdownFile)) {
+            QFile::remove(shutdownFile);
+        }
+
         delete d->serverProcess;
         d->serverProcess = nullptr;
     }
     qDebug() << "Data Receiver Server process stopped.";
+
+    // ADD SMALL DELAY TO ENSURE PYTHON PROCESS FULLY EXITS
+    QThread::msleep(50);
 }
+
 std::string PythonBackendWrapper::startRecording(const std::string& gameName, const std::string& gamePath, const std::string& recordingPath, bool enableDataCollection)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -134,6 +176,7 @@ std::string PythonBackendWrapper::startRecording(const std::string& gameName, co
         return std::string("Python Error: ") + e.what();
     }
 }
+
 std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
@@ -146,6 +189,7 @@ std::string PythonBackendWrapper::stopRecording(const std::string& recordingId)
         return std::string("Python Error: ") + e.what();
     }
 }
+
 std::string PythonBackendWrapper::exportPlayerData(const std::string& playerName, const std::string& exportPath)
 {
     PythonBackendWrapperPrivate *d = d_ptr_cast();
