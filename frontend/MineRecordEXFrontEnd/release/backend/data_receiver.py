@@ -74,6 +74,13 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
 def start_socket_server():
     """Starts the TCP socket server in a blocking call."""
     print(f"[*] Starting data collection server on {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}...")
+    
+    # Ensure database and table exist before starting server
+    db_setup = Database()
+    if not db_setup.setup_database_and_table():
+        print("[!!!] Failed to set up database. Server will not start.")
+        return
+    
     server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
     try:
         server.serve_forever()
