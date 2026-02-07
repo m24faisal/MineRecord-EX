@@ -1,25 +1,41 @@
+# backend/data_receiver.py
+import sys
+import os
 import socketserver
 import threading
-import time
-import os
 import traceback
 import json
-from config import DATA_SERVER_CONFIG
-from database import Database
+import time
 
-# Global server reference
-_server = None
+def log(msg):
+    print(f"[DATA_RECEIVER] {msg}")
+    sys.stdout.flush()
+
+try:
+    from config import DATA_SERVER_CONFIG
+    log("Config loaded successfully")
+except Exception as e:
+    log(f"Failed to load config: {e}")
+    sys.exit(1)
+
+Database = None
+try:
+    from database import Database
+    log("Database module loaded successfully")
+except Exception as e:
+    log(f"Failed to load database module: {e}")
+    traceback.print_exc()
 
 class GameDataTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
-        print(f"[*] Connection from {self.client_address[0]}:{self.client_address[1]}")
         try:
             data = self.request.recv(4096).strip()
             if not data: 
                 return
+                
             data_dict = json.loads(data.decode('utf-8'))
             player_name = data_dict.get("plyrName", "Unknown")
-            print(f"[*] Processed data for: {player_name}")
+            log(f"Processing data for: {player_name}")
 
             if Database:
                 db_data = {
@@ -42,45 +58,77 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
                     "plyrRideVehicle": data_dict.get("plyrRideVehicle"),
                     "plyrMomentum": data_dict.get("plyrMomentum")
                 }
-                db = Database()
-                if db.connect():
-                    db.insert_detailed_data(player_name, db_data)
-                    db.close()
+                try:
+                    db = Database()
+                    if db.connect():
+                        db.insert_detailed_data(player_name, db_data)
+                        db.close()
+                except Exception as e:
+                    log(f"Database error: {e}")
+                    traceback.print_exc()
         except Exception as e:
+            log(f"Handler error: {e}")
             traceback.print_exc()
 
 def check_shutdown_file():
-    return os.path.exists("data_receiver.shutdown")
+    try:
+        exists = os.path.exists("data_receiver.shutdown")
+        if exists:
+            log("Shutdown file detected!")
+            os.remove("data_receiver.shutdown")
+        return exists
+    except Exception as e:
+        log(f"Error checking shutdown file: {e}")
+        return False
 
 def start_socket_server():
-    global _server
-    print(f"[*] Starting server on {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}...")
+    log("Starting data receiver server...")
+    
+    # Setup database
+    if Database:
+        try:
+            db_setup = Database()
+            db_setup.setup_database_and_table()
+            log("Database setup completed")
+        except Exception as e:
+            log(f"Database setup failed: {e}")
+            traceback.print_exc()
+    else:
+        log("Running without database support")
 
-    # Setup DB
-    db_setup = Database()
-    db_setup.setup_database_and_table()
+    # Create server
+    try:
+        server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
+        server.daemon_threads = True
+        server.allow_reuse_address = True
+        
+        # Start server thread
+        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread.daemon = True
+        server_thread.start()
+        
+        log("Server started successfully. Waiting for shutdown signal...")
+        
+        # Main shutdown detection loop
+        while True:
+            if check_shutdown_file():
+                break
+            time.sleep(0.2)
+            
+        log("Shutting down server...")
+        server.shutdown()
+        server.server_close()
+        log("Server stopped gracefully.")
+        
+    except Exception as e:
+        log(f"Server error: {e}")
+        traceback.print_exc()
 
-    _server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
-    _server.daemon_threads = True
-    _server.allow_reuse_address = True
-
-    # Start server in background thread
-    server_thread = threading.Thread(target=_server.serve_forever)
-    server_thread.daemon = True
-    server_thread.start()
-
-    print("[*] Server running. Waiting for shutdown signal...")
-
-    # Main thread: wait for shutdown file
-    while True:
-        if check_shutdown_file():
-            print("[*] Shutdown file detected.")
-            os.remove("data_receiver.shutdown")
-            break
-        time.sleep(0.2)
-
-    # Graceful shutdown
-    print("[*] Shutting down server...")
-    _server.shutdown()
-    _server.server_close()
-    print("[*] Server stopped gracefully.")
+if __name__ == "__main__":
+    log("Script starting...")
+    try:
+        start_socket_server()
+    except Exception as e:
+        log(f"Fatal error: {e}")
+        traceback.print_exc()
+    log("Script exiting...")
