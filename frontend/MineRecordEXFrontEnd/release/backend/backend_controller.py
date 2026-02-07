@@ -39,6 +39,12 @@ def export_player_data(player_name, export_path):
     if _is_shutting_down():
         return "Error: Python is shutting down"
     print(f"[*] export_player_data called with player='{player_name}', path='{export_path}'")
+    
+    # ENSURE DATABASE AND TABLE EXIST BEFORE CONNECTING
+    db_setup = Database()
+    if not db_setup.setup_database_and_table():
+        return "Error: Could not set up database."
+    
     db = Database()
     if not db.connect():
         return "Error: Could not connect to the database."

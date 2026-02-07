@@ -30,7 +30,7 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             data = self.request.recv(4096).strip()
-            if not data: 
+            if not data:
                 return
                 
             data_dict = json.loads(data.decode('utf-8'))
@@ -84,14 +84,16 @@ def check_shutdown_file():
 def start_socket_server():
     log("Starting data receiver server...")
     
-    # Setup database
+    # ENSURE DATABASE AND TABLE EXIST BEFORE STARTING SERVER
     if Database:
         try:
             db_setup = Database()
-            db_setup.setup_database_and_table()
-            log("Database setup completed")
+            if db_setup.setup_database_and_table():
+                log("Database setup completed successfully")
+            else:
+                log("Database setup failed - server will continue without database support")
         except Exception as e:
-            log(f"Database setup failed: {e}")
+            log(f"Database setup error: {e}")
             traceback.print_exc()
     else:
         log("Running without database support")

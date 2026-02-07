@@ -603,6 +603,7 @@ release/moc_mainwindow.cpp: mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QSet \
 		ui_mainwindow.h \
 		release/moc_predefs.h \
 		C:/Qt/6.9.0/mingw_64/bin/moc.exe
@@ -1490,6 +1491,7 @@ release/main.o: main.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QSet \
 		ui_mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h
@@ -1733,6 +1735,7 @@ release/mainwindow.o: mainwindow.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QSet \
 		ui_mainwindow.h \
 		programinfo.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QString \
@@ -1798,7 +1801,15 @@ release/mainwindow.o: mainwindow.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QUuid \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/quuid.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QScopedValueRollback \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/qscopedvaluerollback.h
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qscopedvaluerollback.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QJsonDocument \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsondocument.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsonparseerror.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsonvalue.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qcborvalue.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qcborcommon.h \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QJsonObject \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsonobject.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\mainwindow.o mainwindow.cpp
 
 release/programinfo.o: programinfo.cpp programinfo.h \
@@ -2692,6 +2703,7 @@ release/settingsdialog.o: settingsdialog.cpp settingsdialog.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QProcess \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qprocess.h \
 		C:/Qt/6.9.0/mingw_64/include/QtGui/QCloseEvent \
+		C:/Qt/6.9.0/mingw_64/include/QtCore/QSet \
 		ui_mainwindow.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\settingsdialog.o settingsdialog.cpp
 
