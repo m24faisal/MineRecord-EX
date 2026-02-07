@@ -3,6 +3,8 @@ import socketserver
 import threading
 import traceback
 import json
+import os
+import time
 from config import DATA_SERVER_CONFIG
 from database import Database
 
@@ -71,8 +73,20 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
         finally:
             print(f"[*] Closing connection with {self.client_address[0]}")
 
+def check_shutdown_file():
+    """Check for external shutdown file created by C++ wrapper."""
+    shutdown_file = "data_receiver.shutdown"
+    if os.path.exists(shutdown_file):
+        print(f"[*] Shutdown file detected: {shutdown_file}")
+        try:
+            os.remove(shutdown_file)
+        except OSError:
+            pass
+        return True
+    return False
+
 def start_socket_server():
-    """Starts the TCP socket server in a blocking call."""
+    """Starts the TCP socket server with graceful shutdown support."""
     print(f"[*] Starting data collection server on {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}...")
     
     # Ensure database and table exist before starting server
@@ -82,17 +96,31 @@ def start_socket_server():
         return
     
     server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
+    server.daemon_threads = True
+    
+    # Start server in background thread
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+    
+    print("[*] Data receiver server started successfully.")
+    
+    # Wait for shutdown signal (file-based from C++ wrapper)
     try:
-        server.serve_forever()
-    except (KeyboardInterrupt, SystemExit):
-        print("\n[!] Server interrupted.")
+        while True:
+            if check_shutdown_file():
+                break
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n[!] Server interrupted by user.")
     finally:
-        print("[*] Closing server socket.")
+        print("[*] Shutting down server...")
+        server.shutdown()
         server.server_close()
-        print("[*] Server stopped.")
+        print("[*] Server stopped gracefully.")
 
 def stop_socket_server():
-    """No-op since server runs in separate process"""
+    """No-op since server uses file-based shutdown from C++ wrapper."""
     pass
 
 if __name__ == "__main__":
