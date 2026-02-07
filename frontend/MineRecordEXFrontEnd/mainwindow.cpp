@@ -487,10 +487,11 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
 
     QStringList ffmpegArgs;
     ffmpegArgs << "-f" << "gdigrab"
+               << "-thread_queue_size" << "512"
                << "-framerate" << "30"
                << "-probesize" << "10M"
                << "-i" << "desktop"
-               << "-draw_mouse" << "1"        // ← KEEPS MOUSE VISIBLE
+               << "-draw_mouse" << "1"
                << "-c:v" << "libx264"
                << "-preset" << "ultrafast"
                << "-crf" << "23"
@@ -511,9 +512,6 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
     // Store both processes for later cleanup
     m_activeProcesses[gameName] = gameProcess;
     m_activeProcesses[gameName + "_ffmpeg"] = ffmpegProcess;
-
-    // REMOVED: Data service start/stop calls from recording methods
-    // Data service lifecycle is now tied to application lifecycle only
 
     qDebug() << "Started recording for:" << gameName << "at" << recordingDir;
     return true;
