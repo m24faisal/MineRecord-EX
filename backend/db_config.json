@@ -1,7 +1,0 @@
-{
-    "database": "playerdata",
-    "host": "127.0.0.1",
-    "password": "postgres",
-    "port": "5432",
-    "user": "postgres"
-}
