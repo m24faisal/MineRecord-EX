@@ -182,7 +182,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pythonWrapper = new PythonBackendWrapper();
     m_pythonWrapper->initialize();
     if (enableDataCollection) {
-        m_pythonWrapper->startDataService();
+        m_pythonWrapper->startDataService(); // ← Data service starts with application
     }
 
     // Connect cleanup before quit
@@ -296,7 +296,7 @@ void MainWindow::cleanupBeforeQuit()
 {
     qDebug() << "Stopping global Python data collection service...";
     if (m_pythonWrapper) {
-        m_pythonWrapper->stopDataService();
+        m_pythonWrapper->stopDataService(); // ← Data service stops only on application exit
         m_pythonWrapper->shutdown();
         delete m_pythonWrapper;
         m_pythonWrapper = nullptr;
@@ -367,7 +367,7 @@ void MainWindow::startRecording()
         return;
     }
 
-    // CRITICAL: Set activeRecordingId for stop functionality
+    // RESTORE THIS LINE:
     activeRecordingId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     QSettings settings("Stat Tracker", "MineRecordEX");
@@ -512,9 +512,8 @@ bool MainWindow::startRecordingProcess(const QString &executablePath, const QStr
     m_activeProcesses[gameName] = gameProcess;
     m_activeProcesses[gameName + "_ffmpeg"] = ffmpegProcess;
 
-    if (enableDataCollection && m_pythonWrapper) {
-        m_pythonWrapper->startDataService();
-    }
+    // REMOVED: Data service start/stop calls from recording methods
+    // Data service lifecycle is now tied to application lifecycle only
 
     qDebug() << "Started recording for:" << gameName << "at" << recordingDir;
     return true;
@@ -553,9 +552,8 @@ bool MainWindow::stopRecordingProcess(const QString &gameName)
         }
     }
 
-    if (enableDataCollection && m_pythonWrapper) {
-        m_pythonWrapper->stopDataService();
-    }
+    // REMOVED: Data service stop call from recording stop
+    // Data service continues running until application exit
 
     qDebug() << "Stopped recording for:" << gameName;
     return true;
@@ -642,7 +640,7 @@ void MainWindow::on_actionExit_Application_triggered()
 { this->close(); }
 
 void MainWindow::on_actionGitHub_triggered()
-{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories")); }
+{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories  ")); }
 
 void MainWindow::on_actionInfo_triggered()
 {

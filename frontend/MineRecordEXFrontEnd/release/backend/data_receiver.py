@@ -1,12 +1,30 @@
 # backend/data_receiver.py
+import sys
+import os
 import socketserver
 import threading
 import traceback
 import json
-import os
 import time
-from config import DATA_SERVER_CONFIG
-from database import Database
+
+# Add backend directory to Python path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+# Try to import dependencies with error handling
+try:
+    from config import DATA_SERVER_CONFIG
+except ImportError as e:
+    print(f"[!!!] Failed to import config: {e}")
+    sys.exit(1)
+
+try:
+    from database import Database
+except ImportError as e:
+    print(f"[!!!] Failed to import database: {e}")
+    # Try to continue without database for debugging
+    Database = None
 
 def parse_location(location_str):
     """Safely parse location string like '[x, y, z]'"""
@@ -34,6 +52,10 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
             player_name = data_dict.get("plyrName", "Unknown")
             print(f"[*] Successfully processed data for player: {player_name}")
             
+            if Database is None:
+                print("[*] Database not available, skipping data save")
+                return
+                
             # Create the final data dictionary that the database expects
             db_data = {
                 "player_name": player_name,
@@ -74,15 +96,21 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
             print(f"[*] Closing connection with {self.client_address[0]}")
 
 def check_shutdown_file():
-    """Check for external shutdown file created by C++ wrapper in parent directory."""
-    # Look in the parent directory (release directory) where C++ creates it
-    shutdown_file = "../data_receiver.shutdown"
-    if os.path.exists(shutdown_file):
-        print(f"[*] Shutdown file detected: {shutdown_file}")
+    """Check for external shutdown file created by C++ wrapper."""
+    shutdown_file = "data_receiver.shutdown"
+    
+    # Debug output
+    current_dir = os.getcwd()
+    file_exists = os.path.exists(shutdown_file)
+    print(f"[*] Shutdown check - CWD: {current_dir}, File exists: {file_exists}")
+    
+    if file_exists:
+        print(f"[*] Shutdown file detected!")
         try:
             os.remove(shutdown_file)
-        except OSError:
-            pass
+            print("[*] Shutdown file removed")
+        except OSError as e:
+            print(f"[*] Error removing file: {e}")
         return True
     return False
 
@@ -90,39 +118,45 @@ def start_socket_server():
     """Starts the TCP socket server with graceful shutdown support."""
     print(f"[*] Starting data collection server on {DATA_SERVER_CONFIG['host']}:{DATA_SERVER_CONFIG['port']}...")
     
-    # Ensure database and table exist before starting server
-    db_setup = Database()
-    if not db_setup.setup_database_and_table():
-        print("[!!!] Failed to set up database. Server will not start.")
-        return
+    # Setup database if available
+    if Database is not None:
+        try:
+            db_setup = Database()
+            if not db_setup.setup_database_and_table():
+                print("[!!!] Database setup failed, but continuing server...")
+        except Exception as e:
+            print(f"[!!!] Database setup error: {e}")
+            traceback.print_exc()
+    else:
+        print("[*] Running without database support")
     
-    server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
-    server.daemon_threads = True
-    
-    # Start server in background thread
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.daemon = True
-    server_thread.start()
-    
-    print("[*] Data receiver server started successfully.")
-    
-    # Wait for shutdown signal (file-based from C++ wrapper)
+    # Create and start server
     try:
+        server = socketserver.ThreadingTCPServer((DATA_SERVER_CONFIG['host'], DATA_SERVER_CONFIG['port']), GameDataTCPHandler)
+        server.daemon_threads = True
+        
+        print("[*] Data receiver server started successfully.")
+        
+        # Main shutdown detection loop
         while True:
             if check_shutdown_file():
                 break
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        print("\n[!] Server interrupted by user.")
-    finally:
+            time.sleep(0.1)
+            
         print("[*] Shutting down server...")
         server.shutdown()
         server.server_close()
         print("[*] Server stopped gracefully.")
+        
+    except Exception as e:
+        print(f"[!!!] Server error: {e}")
+        traceback.print_exc()
 
 def stop_socket_server():
     """No-op since server uses file-based shutdown from C++ wrapper."""
     pass
 
 if __name__ == "__main__":
+    print("[*] Data receiver starting up...")
     start_socket_server()
+    print("[*] Data receiver shutting down...")
