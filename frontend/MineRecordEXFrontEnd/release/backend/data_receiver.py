@@ -74,8 +74,9 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
             print(f"[*] Closing connection with {self.client_address[0]}")
 
 def check_shutdown_file():
-    """Check for external shutdown file created by C++ wrapper."""
-    shutdown_file = "data_receiver.shutdown"
+    """Check for external shutdown file created by C++ wrapper in parent directory."""
+    # Look in the parent directory (release directory) where C++ creates it
+    shutdown_file = "../data_receiver.shutdown"
     if os.path.exists(shutdown_file):
         print(f"[*] Shutdown file detected: {shutdown_file}")
         try:
