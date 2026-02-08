@@ -32,7 +32,7 @@ I uploaded a demo video of how the application works along with all of its funct
 <img width="606" height="533" alt="SS 5" src="https://github.com/user-attachments/assets/c66f38a4-9c6a-4e46-9e1c-93d08d8b7221" />
 
 ## Support The Development
-If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the link below:
+If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/W7W21THQ12)
 
 
