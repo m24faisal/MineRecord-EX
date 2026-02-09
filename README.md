@@ -12,6 +12,19 @@ Please note that a large portion of the codebase for this application was develo
 4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
 5. Install the 64-bit Microsoft Visual C++ Redistributable (vcppredistx64)
 
+## OPTIONAL Python Step
+When you run the python installer, make sure when prompted where to install python 3, check the box at the bottom that says to add python to PATH. After you finish installing python 3, reboot your PC and oprn a cmd terminal window. Once you open up the window, type in the following command: 
+''' python --version ''' 
+This is to check the python version. If you entered it correctly, you should get something like this:
+'''Python 3.13.7'''
+and then install the following packages like this:
+'''
+pip install pandas
+pip install psycopg2
+
+'''
+After doing so, you should now be able to go ahead and launch the application.
+
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
 
