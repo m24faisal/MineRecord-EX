@@ -28,6 +28,11 @@ After doing so, you should now be able to go ahead and launch the application.
 1. Make sure you followed the Installation Instructions noted above before you launch the app for the first
 2. Go to File --> "Add Game" and proceed to add your official Minecraft launcher executable file to the main MineRecordEX application table
 3. Select the launcher from the MineRecordEX main window's item list, right click and select Start Recording to start recording your game play (if you wish to screen record your gameplay and track your stats) or just run the minecraft instance and enable the mod normally through the Minecraft launch and MineRecordEX should easily detect that the launcher is currently running. The latter option is more meant for users who just want to track player stats and not screen record gameplay. If there are any issues here, please make sure that run as admin is disabled first before running the launcher.
+4. After you are done playing a session in Minecraft, go ahead and exit out of the application. Once you have done that, if you are done recording, either right click your minecraft launcher exe in the list and select stop recording, or you can do it through file --> stop recording.
+5. After you finished recording or tracking your gameplay, you can go ahead and export the data from settings. You do this by going to file->settings, path settings, and click the export data button.
+6. After clicking the button, type in your minecraft username, click ok and it should export the tracked stat data as a csv file and saved it to the specified directory for csv stat files. You can change this directory to whatever you want. The same goes for recordings as well.
+
+For a more visual demonstration, please feel free to watch the demo video on YouTube, linked above. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
 
