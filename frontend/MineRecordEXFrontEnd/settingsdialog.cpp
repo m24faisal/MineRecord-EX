@@ -122,6 +122,8 @@ void SettingsDialog::setupPathSettings()
     recordingPathEdit = new QLineEdit(this);
     recordingBrowseButton = new QPushButton("Browse...", this);
 
+    recordingPathEdit->setText(QCoreApplication::applicationDirPath() + "/GameRecordings");
+
     recordingPathLayout->addWidget(recordingLabel);
     recordingPathLayout->addWidget(recordingPathEdit);
     recordingPathLayout->addWidget(recordingBrowseButton);
@@ -136,6 +138,8 @@ void SettingsDialog::setupPathSettings()
     QLabel *exportLabel = new QLabel("Export Data Path:", this);
     exportPathEdit = new QLineEdit(this);
     exportBrowseButton = new QPushButton("Browse...", this);
+
+    exportPathEdit->setText(QCoreApplication::applicationDirPath() + "/GameExports");
 
     exportPathLayout->addWidget(exportLabel);
     exportPathLayout->addWidget(exportPathEdit);
@@ -203,10 +207,12 @@ void SettingsDialog::loadSettings()
         themeComboBox->setCurrentIndex(themeIndex);
     }
 
-    recordingPath = settings.value("recordingPath", QDir::homePath() + "/GameRecordings").toString();
+    QString appDir = QCoreApplication::applicationDirPath();
+
+    recordingPath = settings.value("recordingPath", appDir + "/GameRecordings").toString();
     recordingPathEdit->setText(recordingPath);
 
-    exportPath = settings.value("exportPath", QDir::homePath() + "/GameExports").toString();
+    exportPath = settings.value("exportPath", appDir + "/GameExports").toString();
     exportPathEdit->setText(exportPath);
 
     enableDataCollection = settings.value("enableDataCollection", false).toBool();
