@@ -10,7 +10,7 @@ Please note that a large portion of the codebase for this application was develo
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
 4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
-5. Install the 64-bit Microsoft Visual C++ Redistributable (vcppredistx64)
+5. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 
 ## OPTIONAL Python Step
 When you run the python installer, make sure when prompted where to install python 3, check the box at the bottom that says to add python to PATH. After you finish installing python 3, reboot your PC and oprn a cmd terminal window. Once you open up the window, type in the following command: 
@@ -24,6 +24,10 @@ pip install psycopg2
 ```
 After doing so, you should now be able to go ahead and launch the application.
 
+## Usage Instructions
+1. Make sure you followed the Installation Instructions noted above before you launch the app for the first
+2. Go to File --> "Add Game" and proceed to add your official Minecraft launcher executable file to the main MineRecordEX application table
+3. Select the launcher from the MineRecordEX main window's item list, right click and select Start Recording to start recording your game play (if you wish to screen record your gameplay and track your stats) or just run the minecraft instance and enable the mod normally through the Minecraft launch and MineRecordEX should easily detect that the launcher is currently running. The latter option is more meant for users who just want to track player stats and not screen record gameplay. If there are any issues here, please make sure that run as admin is disabled first before running the launcher.
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
 
