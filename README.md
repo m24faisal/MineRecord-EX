@@ -10,6 +10,7 @@ Please note that a large portion of the codebase for this application was develo
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
 4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
+5. Install the 64-bit Microsoft Visual C++ Redistributable (vcppredistx64)
 
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
