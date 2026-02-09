@@ -7,5 +7,6 @@
         <file>startRecord.svg</file>
         <file>stopRecording.svg</file>
         <file>Close X.svg</file>
+        <file>trash.svg</file>
     </qresource>
 </RCC>

@@ -50,6 +50,7 @@ QMenuBar::item {
     <addaction name="actionExit_Application"/>
     <addaction name="fileActionStartRecording"/>
     <addaction name="fileActionStopRecording"/>
+    <addaction name="actionRemove_Game"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="styleSheet">
@@ -125,6 +126,11 @@ QMenuBar::item {
    </property>
    <property name="text">
     <string>Stop Recording</string>
+   </property>
+  </action>
+  <action name="actionRemove_Game">
+   <property name="text">
+    <string>Remove Game</string>
    </property>
   </action>
  </widget>
