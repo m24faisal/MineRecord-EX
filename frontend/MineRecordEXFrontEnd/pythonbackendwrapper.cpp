@@ -54,7 +54,7 @@ void PythonBackendWrapper::initialize()
 
         // Configure Python to use bundled installation
         py::exec("import sys");
-        py::exec("sys.executable = '" + pythonPath.toStdString() + "/python.exe'");
+        py::exec("sys.executable = '" + pythonPath.toStdString() + "/Scripts/python.exe'");
         py::exec("sys.prefix = sys.exec_prefix = '" + pythonPath.toStdString() + "'");
         py::exec("sys.path.insert(0, '" + backendPath.toStdString() + "')");
         py::exec("sys.path.insert(0, '" + pythonPath.toStdString() + "/Lib/site-packages')");
@@ -114,7 +114,7 @@ void PythonBackendWrapper::startDataService()
     QString appDir = QCoreApplication::applicationDirPath();
     QString backendPath = appDir + "/backend";
     QString serverScript = backendPath + "/data_receiver.py";
-    QString pythonExe = appDir + "/python/python.exe"; // Use bundled Python
+    QString pythonExe = appDir + "/python/Scripts/python.exe"; // Use bundled Python
 
     qDebug() << "Starting server process with script:" << serverScript;
     qDebug() << "Using Python executable:" << pythonExe;
