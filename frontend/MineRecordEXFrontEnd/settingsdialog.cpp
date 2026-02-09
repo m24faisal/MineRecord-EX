@@ -185,6 +185,8 @@ void SettingsDialog::setupDbSettings()
     dbHostEdit->setText("127.0.0.1");
     dbPortEdit->setText("5432");
     dbDatabaseEdit->setText("playerdata");
+    dbUsernameEdit->setText("postgres");
+    dbPasswordEdit->setText("postgres");
 
     formLayout->addRow("Host:", dbHostEdit);
     formLayout->addRow("Port:", dbPortEdit);
@@ -222,7 +224,7 @@ void SettingsDialog::loadSettings()
     QString dbPort = settings.value("dbPort", "5432").toString();
     QString dbDatabase = settings.value("dbDatabase", "playerdata").toString();
     QString dbUsername = settings.value("dbUsername", "postgres").toString();
-    QString dbPassword = settings.value("dbPassword", "a").toString();
+    QString dbPassword = settings.value("dbPassword", "postgres").toString();
 
     dbHostEdit->setText(dbHost);
     dbPortEdit->setText(dbPort);
