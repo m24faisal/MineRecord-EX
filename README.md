@@ -6,7 +6,7 @@ Keeps a record of and tracks in-game character stats during livestreamed gamepla
 Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
 
 ## Install Instructions:
-1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). 
+1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's own launcher is incompatible with this program.
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
 4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
