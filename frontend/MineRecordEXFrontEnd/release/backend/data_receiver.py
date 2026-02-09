@@ -30,7 +30,7 @@ class GameDataTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             data = self.request.recv(4096).strip()
-            if not data:
+            if not data: 
                 return
                 
             data_dict = json.loads(data.decode('utf-8'))

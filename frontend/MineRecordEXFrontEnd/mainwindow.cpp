@@ -1166,3 +1166,64 @@ void MainWindow::applySettings()
 
     QApplication::processEvents();
 }
+
+void MainWindow::on_actionRemove_Game_triggered()
+{
+    if (!executableTable) {
+        qDebug() << "Executable table is null";
+        return;
+    }
+
+    QList<QTableWidgetSelectionRange> selection = executableTable->selectedRanges();
+    if (selection.isEmpty()) {
+        QMessageBox::warning(this, "No Selection", "Please select a game from the table first.");
+        return;
+    }
+
+    int row = selection.first().topRow();
+    if (row < 0 || row >= executableTable->rowCount()) {
+        qDebug() << "Invalid row selection:" << row;
+        return;
+    }
+
+    QTableWidgetItem *nameItem = executableTable->item(row, 0);
+    if (!nameItem) {
+        qDebug() << "Missing name item at row" << row;
+        QMessageBox::critical(this, "Error", "Invalid game entry selected.");
+        return;
+    }
+
+    QString path = nameItem->data(Qt::UserRole).toString();
+    if (!programs.contains(path)) {
+        qDebug() << "Selected game not found in programs map:" << path;
+        return;
+    }
+
+    ProgramInfo *program = programs.value(path, nullptr);
+    if (!program) {
+        qDebug() << "ProgramInfo is null for path:" << path;
+        return;
+    }
+
+    QString gameName = program->name();
+    int ret = QMessageBox::question(this, "Remove Game",
+                                    "Are you sure you want to remove " + gameName + " from the list?",
+                                    QMessageBox::Yes | QMessageBox::No);
+
+    if (ret == QMessageBox::Yes) {
+        // Remove from programs map
+        programs.remove(path);
+        delete program;
+
+        // Remove from table
+        executableTable->removeRow(row);
+
+        saveProgramData();
+
+        // Clear selection after removal
+        executableTable->clearSelection();
+        executableTable->setCurrentCell(-1, -1);
+
+        QMessageBox::information(this, "Game Removed", gameName + " has been removed from the list.");
+    }
+}

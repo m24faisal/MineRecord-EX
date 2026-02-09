@@ -129,6 +129,10 @@ QMenuBar::item {
    </property>
   </action>
   <action name="actionRemove_Game">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/trash.svg</normaloff>:/icons/trash.svg</iconset>
+   </property>
    <property name="text">
     <string>Remove Game</string>
    </property>

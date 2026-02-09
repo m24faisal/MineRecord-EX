@@ -29,6 +29,7 @@ public:
     QAction *actionExit_Application;
     QAction *fileActionStartRecording;
     QAction *fileActionStopRecording;
+    QAction *actionRemove_Game;
     QWidget *centralwidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -78,6 +79,11 @@ public:
         QIcon icon6;
         icon6.addFile(QString::fromUtf8(":/icons/stopRecording.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
         fileActionStopRecording->setIcon(icon6);
+        actionRemove_Game = new QAction(MainWindow);
+        actionRemove_Game->setObjectName("actionRemove_Game");
+        QIcon icon7;
+        icon7.addFile(QString::fromUtf8(":/icons/trash.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
+        actionRemove_Game->setIcon(icon7);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);
@@ -106,6 +112,7 @@ public:
         menuFile->addAction(actionExit_Application);
         menuFile->addAction(fileActionStartRecording);
         menuFile->addAction(fileActionStopRecording);
+        menuFile->addAction(actionRemove_Game);
         menuAbout->addAction(actionGitHub);
         menuAbout->addAction(actionInfo);
 
@@ -124,6 +131,7 @@ public:
         actionExit_Application->setText(QCoreApplication::translate("MainWindow", "Exit Program", nullptr));
         fileActionStartRecording->setText(QCoreApplication::translate("MainWindow", "Start Recording", nullptr));
         fileActionStopRecording->setText(QCoreApplication::translate("MainWindow", "Stop Recording", nullptr));
+        actionRemove_Game->setText(QCoreApplication::translate("MainWindow", "Remove Game", nullptr));
         menuFile->setTitle(QCoreApplication::translate("MainWindow", "File", nullptr));
         menuAbout->setTitle(QCoreApplication::translate("MainWindow", "About", nullptr));
     } // retranslateUi
