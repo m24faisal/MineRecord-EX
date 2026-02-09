@@ -14,15 +14,15 @@ Please note that a large portion of the codebase for this application was develo
 
 ## OPTIONAL Python Step
 When you run the python installer, make sure when prompted where to install python 3, check the box at the bottom that says to add python to PATH. After you finish installing python 3, reboot your PC and oprn a cmd terminal window. Once you open up the window, type in the following command: 
-''' python --version ''' 
+``` python --version ``` 
 This is to check the python version. If you entered it correctly, you should get something like this:
 '''Python 3.13.7'''
 and then install the following packages like this:
-'''
+```
 pip install pandas
 pip install psycopg2
 
-'''
+```
 After doing so, you should now be able to go ahead and launch the application.
 
 ## Application Demo Video
