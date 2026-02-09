@@ -88,6 +88,7 @@ private:
     QLineEdit *dbPortEdit;
     QLineEdit *dbUsernameEdit;
     QLineEdit *dbPasswordEdit;
+    QLineEdit *dbDatabaseEdit;
 
     // Store the function passed from MainWindow
     std::function<QString(const QString&, const QString&)> m_exportDataFunction;

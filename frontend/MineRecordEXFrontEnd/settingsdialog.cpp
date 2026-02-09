@@ -175,13 +175,16 @@ void SettingsDialog::setupDbSettings()
     dbPortEdit = new QLineEdit(this);
     dbUsernameEdit = new QLineEdit(this);
     dbPasswordEdit = new QLineEdit(this);
+    dbDatabaseEdit = new QLineEdit(this);
     dbPasswordEdit->setEchoMode(QLineEdit::Password);
 
     dbHostEdit->setText("127.0.0.1");
     dbPortEdit->setText("5432");
+    dbDatabaseEdit->setText("playerdata");
 
     formLayout->addRow("Host:", dbHostEdit);
     formLayout->addRow("Port:", dbPortEdit);
+    formLayout->addRow("Database:", dbDatabaseEdit);
     formLayout->addRow("Username:", dbUsernameEdit);
     formLayout->addRow("Password:", dbPasswordEdit);
 
@@ -211,11 +214,13 @@ void SettingsDialog::loadSettings()
 
     QString dbHost = settings.value("dbHost", "127.0.0.1").toString();
     QString dbPort = settings.value("dbPort", "5432").toString();
+    QString dbDatabase = settings.value("dbDatabase", "playerdata").toString();
     QString dbUsername = settings.value("dbUsername", "postgres").toString();
     QString dbPassword = settings.value("dbPassword", "a").toString();
 
     dbHostEdit->setText(dbHost);
     dbPortEdit->setText(dbPort);
+    dbDatabaseEdit->setText(dbDatabase);
     dbUsernameEdit->setText(dbUsername);
     dbPasswordEdit->setText(dbPassword);
 }
@@ -230,6 +235,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("enableDataCollection", enableDataCollection);
     settings.setValue("dbHost", dbHostEdit->text());
     settings.setValue("dbPort", dbPortEdit->text());
+    settings.setValue("dbDatabase", dbDatabaseEdit->text());
     settings.setValue("dbUsername", dbUsernameEdit->text());
     settings.setValue("dbPassword", dbPasswordEdit->text());
 
@@ -240,7 +246,7 @@ void SettingsDialog::saveSettings()
     QJsonObject dbConfig;
     dbConfig["host"] = dbHostEdit->text();
     dbConfig["port"] = dbPortEdit->text();
-    dbConfig["database"] = "playerdata";
+    dbConfig["database"] = dbDatabaseEdit->text();
     dbConfig["user"] = dbUsernameEdit->text();
     dbConfig["password"] = dbPasswordEdit->text();
 
@@ -319,6 +325,7 @@ void SettingsDialog::applySettingsInternal()
     bool enableDataCollection = enableDataCollectionCheckBox->isChecked();
     QString dbHost = dbHostEdit->text();
     QString dbPort = dbPortEdit->text();
+    QString dbDatabase = dbDatabaseEdit->text();
     QString dbUsername = dbUsernameEdit->text();
     QString dbPassword = dbPasswordEdit->text();
 
@@ -329,6 +336,7 @@ void SettingsDialog::applySettingsInternal()
     settings.setValue("enableDataCollection", enableDataCollection);
     settings.setValue("dbHost", dbHost);
     settings.setValue("dbPort", dbPort);
+    settings.setValue("dbDatabase", dbDatabase);
     settings.setValue("dbUsername", dbUsername);
     settings.setValue("dbPassword", dbPassword);
 
@@ -339,7 +347,7 @@ void SettingsDialog::applySettingsInternal()
     QJsonObject dbConfig;
     dbConfig["host"] = dbHost;
     dbConfig["port"] = dbPort;
-    dbConfig["database"] = "playerdata";
+    dbConfig["database"] = dbDatabase;
     dbConfig["user"] = dbUsername;
     dbConfig["password"] = dbPassword;
 
