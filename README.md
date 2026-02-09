@@ -21,6 +21,8 @@ and then install the following packages like this:
 ```
 pip install pandas
 pip install psycopg2
+pip install psycopg2-binary
+pip install pybind11
 ```
 After doing so, you should now be able to go ahead and launch the application.
 
