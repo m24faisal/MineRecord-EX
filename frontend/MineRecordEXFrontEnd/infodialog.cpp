@@ -36,7 +36,7 @@ void InfoDialog::setupUI()
         "This software also allows the user to export their in-game stats to a viewable spreadsheet file for later reference. If you enjoyed"
         " using this program, please feel free to give a donation on my Ko-Fi page. This program is "
         "categorized under Free Open-Sourced Software (FOSS)</p>"
-        "<p><b>Author(s): </b> Mahir Faisal and Raiyyan Siddiqui<sup>*</sup></p>"
+        "<p><b>Author: </b> Mahir Faisal</p>"
         "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal?tab=repositories   >Github</a></p>"
         "<p><b>Donate: </b><a href=https://ko-fi.com/m24faisal  >Ko-Fi"
         );
@@ -46,22 +46,9 @@ void InfoDialog::setupUI()
     okButton->setFixedWidth(80);  // Set a fixed width of 80 pixels
     connect(okButton, &QPushButton::clicked, this, &InfoDialog::onOkClicked);
 
-    // Add asterisk footnote
-    footnoteLabel = new QLabel(this);
-    QFont footFont = footnoteLabel->font();
-    footFont.setPointSize(8);
-    footnoteLabel->setFont(footFont);
-    footnoteLabel->setWordWrap(true);
-    footnoteLabel->setAlignment(Qt::AlignBottom | Qt::AlignLeft | Qt::AlignJustify);
-    footnoteLabel->setText("<p> NOTE: The individual known as Raiyyan Siddiqui has no involvement, relations"
-                           " or connections with this continuation project. He is credited only due to the contributions "
-                           " that he has made on the original MineRecord application"
-                           " which this software program is a continuation of");
-
     // Add widgets to layout
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(infoLabel);
-    mainLayout->addWidget(footnoteLabel);
 
     // Create a horizontal layout for the button to center it
     QHBoxLayout *buttonLayout = new QHBoxLayout();
