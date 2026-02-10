@@ -50,10 +50,10 @@ I uploaded a demo video of how the application works along with all of its funct
 <img width="746" height="645" alt="SS 3" src="https://github.com/user-attachments/assets/e0a1b05b-5228-427e-8030-fed2adc69ce8" />
 
 4. Settings - DB Settings
-<img width="752" height="635" alt="SS 5" src="https://github.com/user-attachments/assets/18b45b04-4313-4b26-8d61-f4c44082bc65" />
+<img width="746" height="637" alt="image" src="https://github.com/user-attachments/assets/bdd44264-185d-403c-927f-98dcbce22dd0" />
 
 5. About Page
-<img width="606" height="533" alt="SS 5" src="https://github.com/user-attachments/assets/c66f38a4-9c6a-4e46-9e1c-93d08d8b7221" />
+<img width="631" height="541" alt="SS 2" src="https://github.com/user-attachments/assets/f29ac9b5-2e74-4f4c-98ac-306dcb241586" />
 
 ## Support The Development
 If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
