@@ -643,10 +643,10 @@ void MainWindow::on_actionExit_Application_triggered()
 { this->close(); }
 
 void MainWindow::on_actionGitHub_triggered()
-{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal/MineRecord-EX ")); }
+{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal/MineRecord-EX")); }
 
 void MainWindow::on_actionKo_Fi_triggered()
-{ QDesktopServices::openUrl(QUrl("https://ko-fi.com/m24faisal ")); }
+{ QDesktopServices::openUrl(QUrl("https://ko-fi.com/m24faisal")); }
 
 void MainWindow::on_actionInfo_triggered()
 {
