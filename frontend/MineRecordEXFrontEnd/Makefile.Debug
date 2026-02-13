@@ -19,7 +19,7 @@ CXXFLAGS      = -fno-keep-inline-dllexport -g -Wall -Wextra -Wextra -fexceptions
 INCPATH       = -I. -I../../../../AppData/Local/Programs/Python/Python313/include -I../../../../AppData/Local/Programs/Python/Python313/Lib/site-packages/pybind11/include -IC:/Qt/6.9.0/mingw_64/include -IC:/Qt/6.9.0/mingw_64/include/QtWidgets -IC:/Qt/6.9.0/mingw_64/include/QtGui -IC:/Qt/6.9.0/mingw_64/include/QtCore -Idebug -I. -I/include -IC:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ 
 LINKER      =        g++
 LFLAGS        =        -Wl,-subsystem,windows -mthreads
-LIBS        =        -LC:\Users\Mahir\AppData\Local\Programs\Python\Python313\libs -lpython313 C:\Qt\6.9.0\mingw_64\lib\libQt6Widgets.a C:\Qt\6.9.0\mingw_64\lib\libQt6Gui.a C:\Qt\6.9.0\mingw_64\lib\libQt6Core.a -lmingw32 C:\Qt\6.9.0\mingw_64\lib\libQt6EntryPoint.a -lshell32  
+LIBS        =        -LC:\Users\Mahir\AppData\Local\Programs\Python\Python313\libs -lpython313 C:\Qt\6.9.0\mingw_64\lib\libQt6Widgets.a C:\Qt\6.9.0\mingw_64\lib\libQt6Gui.a C:\Qt\6.9.0\mingw_64\lib\libQt6Core.a debug\application_res.o -lmingw32 C:\Qt\6.9.0\mingw_64\lib\libQt6EntryPoint.a -lshell32  
 QMAKE         = C:\Qt\6.9.0\mingw_64\bin\qmake.exe
 DEL_FILE      = del
 CHK_DIR_EXISTS= if not exist
@@ -40,7 +40,7 @@ IDC           = idc
 IDL           = midl
 ZIP           = zip -r -9
 DEF_FILE      = 
-RES_FILE      = 
+RES_FILE      = debug\application_res.o
 SED           = $(QMAKE) -install sed
 MOVE          = move
 
@@ -96,9 +96,12 @@ DESTDIR_TARGET = debug\MineRecordEX.exe
 first: all
 all: Makefile.Debug  debug/MineRecordEX.exe
 
-debug/MineRecordEX.exe: C:/Qt/6.9.0/mingw_64/lib/libQt6Widgets.a C:/Qt/6.9.0/mingw_64/lib/libQt6Gui.a C:/Qt/6.9.0/mingw_64/lib/libQt6Core.a C:/Qt/6.9.0/mingw_64/lib/libQt6EntryPoint.a ui_mainwindow.h $(OBJECTS) 
+debug/MineRecordEX.exe: C:/Qt/6.9.0/mingw_64/lib/libQt6Widgets.a C:/Qt/6.9.0/mingw_64/lib/libQt6Gui.a C:/Qt/6.9.0/mingw_64/lib/libQt6Core.a C:/Qt/6.9.0/mingw_64/lib/libQt6EntryPoint.a ui_mainwindow.h $(OBJECTS) debug/application_res.o
 	$(LINKER) $(LFLAGS) -o $(DESTDIR_TARGET) @debug\object_script.MineRecordEX.Debug $(LIBS)
 	"C:/Users/Mahir/Documents/MineRecordEX/frontend/MineRecordEXFrontEnd/copy_files.bat" "C:/Users/Mahir/Documents/MineRecordEX/frontend/MineRecordEXFrontEnd/debug"
+
+debug/application_res.o: application.rc
+	windres -i application.rc -o debug\application_res.o --include-dir=. $(DEFINES)
 
 qmake: FORCE
 	@$(QMAKE) -o Makefile.Debug MineRecordEXFrontEnd.pro -spec win32-g++ "CONFIG+=qtquickcompiler"
@@ -110,6 +113,7 @@ dist:
 
 clean: compiler_clean 
 	-$(DEL_FILE) debug\infodialog.o debug\main.o debug\mainwindow.o debug\programinfo.o debug\processdetector.o debug\pythonbackendwrapper.o debug\settingsdialog.o debug\qrc_resources.o debug\moc_infodialog.o debug\moc_mainwindow.o debug\moc_processdetector.o debug\moc_settingsdialog.o
+	-$(DEL_FILE) debug\application_res.o
 
 distclean: clean 
 	-$(DEL_FILE) .qmake.stash
@@ -132,13 +136,15 @@ compiler_rcc_clean:
 debug/qrc_resources.cpp: resources.qrc \
 		C:/Qt/6.9.0/mingw_64/bin/rcc.exe \
 		stopRecording.svg \
+		ko-fi-svgrepo-com.svg \
 		settings.svg \
 		trash.svg \
 		AddPlus.svg \
 		github-mark-white.svg \
 		startRecord.svg \
 		Close\ X.svg \
-		Info.svg
+		Info.svg \
+		app_icon.ico
 	C:\Qt\6.9.0\mingw_64\bin\rcc.exe -name resources --no-zstd resources.qrc -o debug\qrc_resources.cpp
 
 compiler_moc_predefs_make_all: debug/moc_predefs.h
@@ -1810,7 +1816,8 @@ debug/mainwindow.o: mainwindow.cpp mainwindow.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qcborvalue.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/qcborcommon.h \
 		C:/Qt/6.9.0/mingw_64/include/QtCore/QJsonObject \
-		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsonobject.h
+		C:/Qt/6.9.0/mingw_64/include/QtCore/qjsonobject.h \
+		C:/Qt/6.9.0/mingw_64/include/QtGui/QIcon
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\mainwindow.o mainwindow.cpp
 
 debug/programinfo.o: programinfo.cpp programinfo.h \

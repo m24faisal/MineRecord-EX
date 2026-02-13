@@ -37,8 +37,8 @@ void InfoDialog::setupUI()
         " using this program, please feel free to give a donation on my Ko-Fi page. This program is "
         "categorized under Free Open-Sourced Software (FOSS)</p>"
         "<p><b>Author: </b> Mahir Faisal</p>"
-        "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal?tab=repositories   >Github</a></p>"
-        "<p><b>Donate: </b><a href=https://ko-fi.com/m24faisal  >Ko-Fi"
+        "<p><b>Source Code Respository: </b><a href=https://github.com/m24faisal/MineRecord-EX >Github</a></p>"
+        "<p><b>Donate: </b><a href=https://ko-fi.com/m24faisal >Ko-Fi"
         );
 
     // Create OK button with fixed width

@@ -51,4 +51,5 @@ win32 {
     } else {
         QMAKE_POST_LINK += \"$$PWD/copy_files.bat\" \"$$OUT_PWD/release\"
     }
+    RC_FILE = application.rc
 }

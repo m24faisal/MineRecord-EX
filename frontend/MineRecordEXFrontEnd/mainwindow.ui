@@ -61,6 +61,7 @@ QMenuBar::item {
     </property>
     <addaction name="actionGitHub"/>
     <addaction name="actionInfo"/>
+    <addaction name="actionKo_Fi"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAbout"/>
@@ -135,6 +136,15 @@ QMenuBar::item {
    </property>
    <property name="text">
     <string>Remove Game</string>
+   </property>
+  </action>
+  <action name="actionKo_Fi">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/ko-fi-svgrepo-com.svg</normaloff>:/icons/ko-fi-svgrepo-com.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Ko-Fi</string>
    </property>
   </action>
  </widget>

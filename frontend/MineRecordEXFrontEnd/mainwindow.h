@@ -46,6 +46,7 @@ public slots:
     void on_actionAdd_Game_triggered();
     void on_actionExit_Application_triggered();
     void on_actionGitHub_triggered();
+    void on_actionKo_Fi_triggered();
     void on_actionInfo_triggered();
     void on_actionSettings_triggered();
     void on_actionRemove_Game_triggered();

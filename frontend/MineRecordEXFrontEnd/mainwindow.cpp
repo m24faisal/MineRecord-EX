@@ -25,6 +25,7 @@
 #include <QScopedValueRollback>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -46,6 +47,10 @@ MainWindow::MainWindow(QWidget *parent) :
     m_isRecordingActionInProgress(false)
 {
     ui->setupUi(this);
+
+    // Set Application Icon
+    setWindowIcon(QIcon(":/app_icon.ico"));
+
     setupUI();
 
     // Ensure backend directory and default db_config.json exist
@@ -638,7 +643,10 @@ void MainWindow::on_actionExit_Application_triggered()
 { this->close(); }
 
 void MainWindow::on_actionGitHub_triggered()
-{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal?tab=repositories  ")); }
+{ QDesktopServices::openUrl(QUrl("https://github.com/m24faisal/MineRecord-EX ")); }
+
+void MainWindow::on_actionKo_Fi_triggered()
+{ QDesktopServices::openUrl(QUrl("https://ko-fi.com/m24faisal ")); }
 
 void MainWindow::on_actionInfo_triggered()
 {

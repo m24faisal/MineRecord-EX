@@ -30,6 +30,7 @@ public:
     QAction *fileActionStartRecording;
     QAction *fileActionStopRecording;
     QAction *actionRemove_Game;
+    QAction *actionKo_Fi;
     QWidget *centralwidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -84,6 +85,11 @@ public:
         QIcon icon7;
         icon7.addFile(QString::fromUtf8(":/icons/trash.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
         actionRemove_Game->setIcon(icon7);
+        actionKo_Fi = new QAction(MainWindow);
+        actionKo_Fi->setObjectName("actionKo_Fi");
+        QIcon icon8;
+        icon8.addFile(QString::fromUtf8(":/icons/ko-fi-svgrepo-com.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
+        actionKo_Fi->setIcon(icon8);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);
@@ -115,6 +121,7 @@ public:
         menuFile->addAction(actionRemove_Game);
         menuAbout->addAction(actionGitHub);
         menuAbout->addAction(actionInfo);
+        menuAbout->addAction(actionKo_Fi);
 
         retranslateUi(MainWindow);
 
@@ -132,6 +139,7 @@ public:
         fileActionStartRecording->setText(QCoreApplication::translate("MainWindow", "Start Recording", nullptr));
         fileActionStopRecording->setText(QCoreApplication::translate("MainWindow", "Stop Recording", nullptr));
         actionRemove_Game->setText(QCoreApplication::translate("MainWindow", "Remove Game", nullptr));
+        actionKo_Fi->setText(QCoreApplication::translate("MainWindow", "Ko-Fi", nullptr));
         menuFile->setTitle(QCoreApplication::translate("MainWindow", "File", nullptr));
         menuAbout->setTitle(QCoreApplication::translate("MainWindow", "About", nullptr));
     } // retranslateUi
