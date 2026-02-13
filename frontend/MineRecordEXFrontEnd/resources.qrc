@@ -10,5 +10,6 @@
         <file>trash.svg</file>
         <file>ko-fi-svgrepo-com.svg</file>
         <file>app_icon.ico</file>
+        <file>app_icon.png</file>
     </qresource>
 </RCC>

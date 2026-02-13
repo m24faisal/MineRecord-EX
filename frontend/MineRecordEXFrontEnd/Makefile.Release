@@ -141,6 +141,7 @@ release/qrc_resources.cpp: resources.qrc \
 		trash.svg \
 		AddPlus.svg \
 		github-mark-white.svg \
+		app_icon.png \
 		startRecord.svg \
 		Close\ X.svg \
 		Info.svg \
@@ -1257,7 +1258,8 @@ release/infodialog.o: infodialog.cpp infodialog.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qabstractbutton.h \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/QApplication \
 		C:/Qt/6.9.0/mingw_64/include/QtWidgets/qapplication.h \
-		C:/Qt/6.9.0/mingw_64/include/QtGui/QFont
+		C:/Qt/6.9.0/mingw_64/include/QtGui/QFont \
+		C:/Qt/6.9.0/mingw_64/include/QtGui/QPixmap
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o release\infodialog.o infodialog.cpp
 
 release/main.o: main.cpp mainwindow.h \

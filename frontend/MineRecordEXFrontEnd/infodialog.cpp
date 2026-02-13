@@ -1,6 +1,7 @@
 #include "infodialog.h"
 #include <QApplication>
 #include <QFont>
+#include <QPixmap>
 
 InfoDialog::InfoDialog(QWidget *parent) : QDialog(parent)
 {
@@ -18,7 +19,7 @@ void InfoDialog::setupUI()
 {
     mainLayout = new QVBoxLayout(this);
 
-    // Create title label with larger font
+    // Title Label Information
     titleLabel = new QLabel("MineRecordEX", this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(16);
@@ -26,7 +27,7 @@ void InfoDialog::setupUI()
     titleLabel->setFont(titleFont);
     titleLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
-    // Create info label with application description
+    // Info Label Information
     infoLabel = new QLabel(this);
     infoLabel->setWordWrap(true);
     infoLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft | Qt::AlignJustify);
@@ -41,6 +42,16 @@ void InfoDialog::setupUI()
         "<p><b>Donate: </b><a href=https://ko-fi.com/m24faisal >Ko-Fi"
         );
 
+    // Logo Label Information
+    logoLabel = new QLabel(this);
+    QPixmap logoPixmap(":/icons/app_icon.png");
+    if(!logoPixmap.isNull()) {
+        QPixmap scaled = logoPixmap.scaledToWidth(120, Qt::SmoothTransformation);
+        logoLabel->setPixmap(scaled);
+    } else {
+        logoLabel->setText("[Logo not found]");
+    }
+    logoLabel->setAlignment(Qt::AlignCenter);
     // Create OK button with fixed width
     okButton = new QPushButton("OK", this);
     okButton->setFixedWidth(80);  // Set a fixed width of 80 pixels
@@ -49,6 +60,7 @@ void InfoDialog::setupUI()
     // Add widgets to layout
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(infoLabel);
+    mainLayout->addWidget(logoLabel);
 
     // Create a horizontal layout for the button to center it
     QHBoxLayout *buttonLayout = new QHBoxLayout();
@@ -61,11 +73,12 @@ void InfoDialog::setupUI()
 
     // Set margins and spacing - adjusted to position infoLabel higher
     mainLayout->setContentsMargins(20, 10, 20, 20);  // Reduced top margin from 20 to 10
-    mainLayout->setSpacing(5);  // Further reduced spacing from 10 to 5
+    mainLayout->setSpacing(10);  // Further reduced spacing from 10 to 5
 
     // Set stretch factors to control layout
     mainLayout->setStretchFactor(titleLabel, 0);
     mainLayout->setStretchFactor(infoLabel, 3);
+    mainLayout->setStretchFactor(logoLabel,0);
 
     // Set a fixed height for the title to reduce space
     titleLabel->setFixedHeight(30);
