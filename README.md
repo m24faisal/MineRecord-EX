@@ -1,6 +1,6 @@
 # MineRecord EX
 
-Keeps a record of and tracks in-game character stats during livestreamed gameplay for Minecraft video game. This utility program was developed in Python 3, PostgreSQL and C++. The associated Minecraft Java Edition mod was developed in Java 21. As of right now, this application only has native support for Minecraft Java Edition. If this software gets popular later on in the future, I will go ahead and add support for other titles.
+MineRecordEX is an application that keeps a record of and tracks in-game character stats during livestreamed gameplay for the popular Minecraft video game. This utility program was developed in Python 3, PostgreSQL and C++. The associated Minecraft Java Edition mod was developed in Java 21. As of right now, this application only has native support for Minecraft Java Edition. However, if this software gets popular later on in the future, I may consider adding support for other video games.
 
 ## Disclosure Message:
 Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
@@ -50,10 +50,10 @@ I uploaded a demo video of how the application works along with all of its funct
 <img width="746" height="645" alt="SS 3" src="https://github.com/user-attachments/assets/e0a1b05b-5228-427e-8030-fed2adc69ce8" />
 
 4. Settings - DB Settings
-<img width="752" height="635" alt="SS 5" src="https://github.com/user-attachments/assets/18b45b04-4313-4b26-8d61-f4c44082bc65" />
+<img width="746" height="637" alt="image" src="https://github.com/user-attachments/assets/bdd44264-185d-403c-927f-98dcbce22dd0" />
 
 5. About Page
-<img width="606" height="533" alt="SS 5" src="https://github.com/user-attachments/assets/c66f38a4-9c6a-4e46-9e1c-93d08d8b7221" />
+<img width="631" height="541" alt="SS 2" src="https://github.com/user-attachments/assets/f29ac9b5-2e74-4f4c-98ac-306dcb241586" />
 
 ## Support The Development
 If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
