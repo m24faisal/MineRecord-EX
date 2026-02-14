@@ -6,7 +6,7 @@ MineRecordEX is an application that keeps a record of and tracks in-game charact
 
 
 ## Disclosure Message:
-Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
+Please note that while a large portion of the codebase for this application was programmed manually by me, Gen AI tools were still used to help apply bug fixes as well as optimize its performance and efficiency. All this boils down to is that Gen AI was used as an assistive tool and not a replacement for development.
 
 ## Install Instructions:
 1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
