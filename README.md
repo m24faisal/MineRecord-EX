@@ -2,6 +2,9 @@
 
 MineRecordEX is an application that keeps a record of and tracks in-game character stats during livestreamed gameplay for the popular Minecraft video game. This utility program was developed in Python 3, PostgreSQL and C++. The associated Minecraft Java Edition mod was developed in Java 21. As of right now, this application only has native support for Minecraft Java Edition. However, if this software gets popular later on in the future, I may consider adding support for other video games.
 
+<img width="200" height="200" alt="MREX Icon" src="https://github.com/user-attachments/assets/498bb76c-b020-483f-a7ce-3b37613c1d66" />
+
+
 ## Disclosure Message:
 Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
 
@@ -41,19 +44,19 @@ I uploaded a demo video of how the application works along with all of its funct
 ## Application Screenshots
 
 1. Main Window:
-<img width="995" height="792" alt="SS 1" src="https://github.com/user-attachments/assets/9bf199a0-bd55-4448-ac39-215304db5dff" />
+<img width="1900" height="1022" alt="image" src="https://github.com/user-attachments/assets/0745f770-df16-4614-84de-becca4aecfaa" />
 
 2. Settings - General
-<img width="736" height="631" alt="image" src="https://github.com/user-attachments/assets/404a5622-4c10-4fbd-874d-afe31894abe6" />
+<img width="781" height="651" alt="image" src="https://github.com/user-attachments/assets/42517edc-d044-4d9b-9e83-240fe8e4800f" />
 
 3. Settings - Paths
-<img width="746" height="645" alt="SS 3" src="https://github.com/user-attachments/assets/e0a1b05b-5228-427e-8030-fed2adc69ce8" />
+<img width="768" height="652" alt="image" src="https://github.com/user-attachments/assets/79cceb99-b407-4636-9f93-ba413ab7f810" />
 
 4. Settings - DB Settings
-<img width="746" height="637" alt="image" src="https://github.com/user-attachments/assets/bdd44264-185d-403c-927f-98dcbce22dd0" />
+<img width="762" height="647" alt="image" src="https://github.com/user-attachments/assets/4d30ad0a-3799-4440-80fe-bdb47bcfe4e5" />
 
 5. About Page
-<img width="631" height="541" alt="SS 2" src="https://github.com/user-attachments/assets/f29ac9b5-2e74-4f4c-98ac-306dcb241586" />
+<img width="648" height="555" alt="image" src="https://github.com/user-attachments/assets/1a2fc3f8-7d26-4934-b6d9-616308ba5faf" />
 
 ## Support The Development
 If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
