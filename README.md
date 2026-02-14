@@ -2,6 +2,9 @@
 
 MineRecordEX is an application that keeps a record of and tracks in-game character stats during livestreamed gameplay for the popular Minecraft video game. This utility program was developed in Python 3, PostgreSQL and C++. The associated Minecraft Java Edition mod was developed in Java 21. As of right now, this application only has native support for Minecraft Java Edition. However, if this software gets popular later on in the future, I may consider adding support for other video games.
 
+<img width="800" height="800" alt="MREX Icon" src="https://github.com/user-attachments/assets/498bb76c-b020-483f-a7ce-3b37613c1d66" />
+
+
 ## Disclosure Message:
 Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
 
