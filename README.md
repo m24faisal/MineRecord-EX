@@ -39,7 +39,7 @@ After doing so, you should now be able to go ahead and launch the application.
 
 For a more visual demonstration, please feel free to watch the demo video on YouTube, linked above. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
 ## Application Demo Video
-I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
+I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it [here](https://www.youtube.com/watch?v=iPtLKEDAJ4k).
 
 ## Application Screenshots
 
