@@ -6,28 +6,15 @@ MineRecordEX is an application that keeps a record of and tracks in-game charact
 
 
 ## Disclosure Message:
-Please note that a large portion of the codebase for this application was developed with the assistance of Gen AI tools. I just wanted to put this message out there to make users of my software program aware of this. I also wanted to  further clarify that the AI was only used to apply bugfixes for the code and optimize its performance and efficiency. Every other aspect and attribute regarding this code was developed manually by hand by myself. The Gen AI was only used as an assistive tool and it was not used as a replacement.
+Please note that while a large portion of the codebase for this application was programmed manually by me, Gen AI tools were still used to help apply bug fixes as well as optimize its performance and efficiency. All this boils down to is that Gen AI was used as an assistive tool and not a replacement for development.
 
 ## Install Instructions:
 1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
-4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
-5. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+4. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 
-## OPTIONAL Python Step
-When you run the python installer, make sure when prompted where to install python 3, check the box at the bottom that says to add python to PATH. After you finish installing python 3, reboot your PC and oprn a cmd terminal window. Once you open up the window, type in the following command: 
-``` python --version ``` 
-This is to check the python version. If you entered it correctly, you should get something like this:
-``` Python 3.13.7 ```
-and then install the following packages like this:
-```
-pip install pandas
-pip install psycopg2
-pip install psycopg2-binary
-pip install pybind11
-```
-After doing so, you should now be able to go ahead and launch the application.
+If anyone wants a visual demonstration on how to download and setup the app, click here
 
 ## Usage Instructions
 1. Make sure you followed the Installation Instructions noted above before you launch the app for the first
@@ -37,9 +24,9 @@ After doing so, you should now be able to go ahead and launch the application.
 5. After you finished recording or tracking your gameplay, you can go ahead and export the data from settings. You do this by going to file->settings, path settings, and click the export data button.
 6. After clicking the button, type in your minecraft username, click ok and it should export the tracked stat data as a csv file and saved it to the specified directory for csv stat files. You can change this directory to whatever you want. The same goes for recordings as well.
 
-For a more visual demonstration, please feel free to watch the demo video on YouTube, linked above. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
+For a more visual demonstration, please feel free to watch the demo video on YouTube, linked below. If anyone has any questions about the setup or usage processes, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
 ## Application Demo Video
-I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it here.
+I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it [here](https://www.youtube.com/watch?v=iPtLKEDAJ4k).
 
 ## Application Screenshots
 
@@ -57,6 +44,16 @@ I uploaded a demo video of how the application works along with all of its funct
 
 5. About Page
 <img width="648" height="555" alt="image" src="https://github.com/user-attachments/assets/1a2fc3f8-7d26-4934-b6d9-616308ba5faf" />
+
+## Screenshots of Results
+1. Screen Recording
+<img width="1918" height="1017" alt="SS 6" src="https://github.com/user-attachments/assets/41458935-6e1f-4783-b31d-9f42b0bae130" />
+
+2. Exported Data Spreadsheet (.CSV File)
+<img width="1916" height="987" alt="SS 7" src="https://github.com/user-attachments/assets/8fea4557-b740-44fb-ab36-45de74c0d643" />
+
+3. Expoted Data Stats - DB View (via PostgreSQL)
+<img width="1497" height="636" alt="SS 8" src="https://github.com/user-attachments/assets/247fc136-6eb2-4abe-8065-b6a7319ac65d" />
 
 ## Support The Development
 If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
