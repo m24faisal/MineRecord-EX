@@ -58,6 +58,16 @@ I uploaded a demo video of how the application works along with all of its funct
 5. About Page
 <img width="648" height="555" alt="image" src="https://github.com/user-attachments/assets/1a2fc3f8-7d26-4934-b6d9-616308ba5faf" />
 
+## Screenshots of Results
+1. Screen Recording
+<img width="1918" height="1017" alt="SS 6" src="https://github.com/user-attachments/assets/41458935-6e1f-4783-b31d-9f42b0bae130" />
+
+2. Exported Data Spreadsheet (.CSV File)
+<img width="1916" height="987" alt="SS 7" src="https://github.com/user-attachments/assets/8fea4557-b740-44fb-ab36-45de74c0d643" />
+
+3. Expoted Data Stats - DB View (via PostgreSQL)
+<img width="1497" height="636" alt="SS 8" src="https://github.com/user-attachments/assets/247fc136-6eb2-4abe-8065-b6a7319ac65d" />
+
 ## Support The Development
 If you enjoyed using my program, please feel free to give me a donation. It really helps to motivate me into putting more features into the application. If interested, you can go ahead and give me donation using the following link:
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/W7W21THQ12)
