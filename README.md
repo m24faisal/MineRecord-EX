@@ -12,22 +12,9 @@ Please note that while a large portion of the codebase for this application was 
 1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
 2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
-4. (OPTIONAL): If at any point you notice that there is an issue with the Python 3 backend, go ahead and install 64-bit Python 3, version 3.13.7. You can download the installer for it from [here](https://www.python.org/downloads/release/python-3137/). More information for how to set it up can be found below.
-5. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+4. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 
-## OPTIONAL Python Step
-When you run the python installer, make sure when prompted where to install python 3, check the box at the bottom that says to add python to PATH. After you finish installing python 3, reboot your PC and oprn a cmd terminal window. Once you open up the window, type in the following command: 
-``` python --version ``` 
-This is to check the python version. If you entered it correctly, you should get something like this:
-``` Python 3.13.7 ```
-and then install the following packages like this:
-```
-pip install pandas
-pip install psycopg2
-pip install psycopg2-binary
-pip install pybind11
-```
-After doing so, you should now be able to go ahead and launch the application.
+If anyone wants a visual demonstration on how to download and setup the app, click here
 
 ## Usage Instructions
 1. Make sure you followed the Installation Instructions noted above before you launch the app for the first
@@ -37,7 +24,7 @@ After doing so, you should now be able to go ahead and launch the application.
 5. After you finished recording or tracking your gameplay, you can go ahead and export the data from settings. You do this by going to file->settings, path settings, and click the export data button.
 6. After clicking the button, type in your minecraft username, click ok and it should export the tracked stat data as a csv file and saved it to the specified directory for csv stat files. You can change this directory to whatever you want. The same goes for recordings as well.
 
-For a more visual demonstration, please feel free to watch the demo video on YouTube, linked above. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
+For a more visual demonstration, please feel free to watch the demo video on YouTube, linked below. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it [here](https://www.youtube.com/watch?v=iPtLKEDAJ4k).
 
