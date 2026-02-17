@@ -24,7 +24,7 @@ If anyone wants a visual demonstration on how to download and setup the app, cli
 5. After you finished recording or tracking your gameplay, you can go ahead and export the data from settings. You do this by going to file->settings, path settings, and click the export data button.
 6. After clicking the button, type in your minecraft username, click ok and it should export the tracked stat data as a csv file and saved it to the specified directory for csv stat files. You can change this directory to whatever you want. The same goes for recordings as well.
 
-For a more visual demonstration, please feel free to watch the demo video on YouTube, linked below. If anyone has any questions about the installation process, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
+For a more visual demonstration, please feel free to watch the demo video on YouTube, linked below. If anyone has any questions about the setup or usage processes, please feel free to create an issue on this Github repo and I will respond as soon as I am able to
 ## Application Demo Video
 I uploaded a demo video of how the application works along with all of its functions up on YouTube. You can view it [here](https://www.youtube.com/watch?v=iPtLKEDAJ4k).
 
