@@ -8,16 +8,23 @@ MineRecordEX is an application that keeps a record of and tracks in-game charact
 ## Disclosure Message:
 Please note that while a large portion of the codebase for this application was programmed manually by me, Gen AI tools were still used to help apply bug fixes as well as optimize its performance and efficiency. All this boils down to is that Gen AI was used as an assistive tool and not a replacement for development.
 
-## Install Instructions:
-1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
-2. Install  64-bit PostgreSQL build version 17.7. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-3. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases/tag/v1.0)
-4. Install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+## Prerequisite Software Instructions:
+1. Make sure you have Minecraft Java Edition 1.21.10 installed onto your PC. I also recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
+2. Make sure NeoForge version 21.10.64 is installed and enabled on your Minecraft install as well (21.10.64 should be the latest version of NeoForge that is compatible with Minecraft: Java Edition version 1.21.10).
+3. Download and install  64-bit PostgreSQL build version 17.7. After you have gone through the setup process, please make a note of the login settings which you created for the postgres database. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
+4. Download and install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 
-If anyone wants a visual demonstration on how to download and setup the app, click here
+## App Installation Instructions:
+1. Download the ```MineRecordEX.zip``` and ```stattrackermod.jar``` file from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases)
+2. Copy the ```.jar``` file to your Minecraft mods directory
+3. Launch Minecraft and make sure both the NeoForge mod loader and ```stattrackermod.jar``` mod file are correctly loaded into Minecraft.
+4. Once you have confirmed step 3, extract the ```MineRecordEX.zip``` file anywhere on your pc and then go ahead an launch the ```MineRecordEX.exe``` file
+5. Go into the MineRecordEX application settings via File --> Settings, and change the db settings to the settings that you created during the postgreSQL install setup and change the file paths to for the screen recordings and data exports to locations of your preference. Also make sure that the enable data collection checkbox in the path settings category is enabled to allow for proper stat tracking when going in-game for Minecraft. Press ok to apply your changes in settings and then go ahead and relaunch the application. All the changes that you made should be set in place now.  
+
+For a visual demonstration on how to download and setup the app, click [here](https://youtu.be/98QERpmWjuI)
 
 ## Usage Instructions
-1. Make sure you followed the Installation Instructions noted above before you launch the app for the first
+1. Make sure you followed the App Installation Instructions noted above before you launch the app
 2. Go to File --> "Add Game" and proceed to add your official Minecraft launcher executable file to the main MineRecordEX application table
 3. Select the launcher from the MineRecordEX main window's item list, right click and select Start Recording to start recording your game play (if you wish to screen record your gameplay and track your stats) or just run the minecraft instance and enable the mod normally through the Minecraft launch and MineRecordEX should easily detect that the launcher is currently running. The latter option is more meant for users who just want to track player stats and not screen record gameplay. If there are any issues here, please make sure that run as admin is disabled first before running the launcher.
 4. After you are done playing a session in Minecraft, go ahead and exit out of the application. Once you have done that, if you are done recording, either right click your minecraft launcher exe in the list and select stop recording, or you can do it through file --> stop recording.
