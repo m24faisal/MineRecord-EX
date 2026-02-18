@@ -12,11 +12,10 @@ Please note that while a large portion of the codebase for this application was 
 1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
 2. Make sure NeoForge version 21.10.64 is installed and enabled on your Minecraft install as well (21.10.64 should be the latest version of NeoForge that is compatible with Minecraft: Java Edition version 1.21.10).
 3. Download and install  64-bit PostgreSQL build version 17.7. After you have gone through the setup process, please make a note of the login settings which you created for the postgres database. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-4. Download MineRecordEX and the associated minecraft mod files from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases)
-5. Download and install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+4. Download and install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 
 ## App Installation Instructions:
-1. Download the ```MineRecordEX.zip``` and ```stattrackermod.jar``` file from the releases page
+1. Download the ```MineRecordEX.zip``` and ```stattrackermod.jar``` file from the releases page [here](https://github.com/m24faisal/MineRecord-EX/releases)
 2. Copy the ```.jar``` file to your Minecraft mods directory
 3. Launch Minecraft and make sure both the NeoForge mod loader and ```stattrackermod.jar``` mod file are correctly loaded into Minecraft.
 4. Once you have confirmed step 3, extract the ```MineRecordEX.zip``` file anywhere on your pc and then go ahead an launch the ```MineRecordEX.exe``` file
