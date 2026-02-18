@@ -9,7 +9,7 @@ MineRecordEX is an application that keeps a record of and tracks in-game charact
 Please note that while a large portion of the codebase for this application was programmed manually by me, Gen AI tools were still used to help apply bug fixes as well as optimize its performance and efficiency. All this boils down to is that Gen AI was used as an assistive tool and not a replacement for development.
 
 ## Prerequisite Software Instructions:
-1. Make sure you have Minecraft Java Edition installed onto your PC (preferrably build version 1.21.10 as its the one that I used to test the functionality of the application). I also highly recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
+1. Make sure you have Minecraft Java Edition 1.21.10 installed onto your PC. I also recommend using prism launcher as Microsoft's official Minecraft launcher is incompatible with this program.
 2. Make sure NeoForge version 21.10.64 is installed and enabled on your Minecraft install as well (21.10.64 should be the latest version of NeoForge that is compatible with Minecraft: Java Edition version 1.21.10).
 3. Download and install  64-bit PostgreSQL build version 17.7. After you have gone through the setup process, please make a note of the login settings which you created for the postgres database. You can find the download links [here](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
 4. Download and install the 64-bit Microsoft Visual C++ Redistributable executable file [here](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
